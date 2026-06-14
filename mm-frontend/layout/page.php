@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageMeta['title'] ?? 'Majestic Marquees & Tents') ?></title>
     <link rel="icon" href="data:,">
-    <?php foreach ($pageMeta['name'] ?? [] as $k => $v): ?>
+    <!-- Staging: force the whole frontend to be non-indexable. -->
+    <meta name="robots" content="noindex, nofollow">
+    <?php foreach ($pageMeta['name'] ?? [] as $k => $v): if ($k === 'robots') continue; ?>
     <meta name="<?= e($k) ?>" content="<?= e($v) ?>">
     <?php endforeach; ?>
     <?php foreach ($pageMeta['property'] ?? [] as $k => $v): ?>

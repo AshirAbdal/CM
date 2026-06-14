@@ -1,6 +1,42 @@
 <?php
 if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
+// --- JWT auth guard (matches dashboard.php) -------------------------------
+// Validate the session JWT against the API on every load; a 401 means the
+// token is missing/expired/invalid, so force a fresh login.
+$_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
+define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
+define('API_KEY',  'mq-prod-public-key-001');
+define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
+unset($_is_local);
+
+$ch = curl_init(API_BASE . '/wl/admin/leads');
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => [
+        'X-API-Key: '            . API_KEY,
+        'Origin: '               . ORIGIN,
+        'Authorization: Bearer ' . ($_SESSION['jwt'] ?? ''),
+    ],
+    CURLOPT_SSL_VERIFYPEER => true,
+    CURLOPT_SSL_VERIFYHOST => 2,
+]);
+curl_exec($ch);
+$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($status === 401) {
+    // JWT expired or invalid — kick back to login
+    session_destroy();
+    header('Location: /login');
+    exit;
+}
+
+// --- CSRF token (inline, matches login.php) -------------------------------
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Absolute path to the frontend's public/assets directory.
 //
 // The admin and the frontend are deployed as SEPARATE sites with different
@@ -182,7 +218,13 @@ $message = '';
 $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
-    verify_csrf();
+    $submitted = $_POST['csrf_token'] ?? '';
+    $expected  = $_SESSION['csrf_token'] ?? '';
+    if (!hash_equals($expected, $submitted)) {
+        http_response_code(403);
+        exit('Invalid request.');
+    }
+    unset($_SESSION['csrf_token']);
     $key = trim($_POST['image_key']);
 
     if (!array_key_exists($key, $images_config)) {
@@ -214,6 +256,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
             }
         }
     }
+}
+
+// Re-issue a CSRF token for the freshly rendered forms (the previous one was
+// consumed above on a successful POST verification).
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $layout    = 'app';
@@ -306,7 +354,7 @@ $activeNav = 'images';
                     </div>
 
                     <form method="POST" action="/images" enctype="multipart/form-data" class="mt-auto flex flex-col gap-1.5">
-                        <?= csrf_field() ?>
+                        <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token'] ?? '') ?>">
                         <input type="hidden" name="image_key" value="<?= e($key) ?>">
                         <input type="file"
                                name="new_image"

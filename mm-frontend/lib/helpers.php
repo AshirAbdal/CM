@@ -284,6 +284,7 @@ function handle_contact_submit(): ?array
         'name'    => $_POST['name'] ?? '',
         'email'   => $_POST['email'] ?? '',
         'message' => $_POST['message'] ?? '',
+        'source'  => 'contact-form',
     ]);
 }
 

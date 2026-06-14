@@ -43,6 +43,12 @@ if (in_array($path, ['/', '/login'])) {
 } elseif ($path === '/dashboard') {
     if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
     $pageFile = __DIR__ . '/../pages/dashboard.php';
+} elseif ($path === '/customer-info-details') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/customer_info_details.php';
+} elseif ($path === '/customer-info') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/customer_info.php';
 } elseif ($path === '/images') {
     if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
     $pageFile = __DIR__ . '/../pages/images.php';
