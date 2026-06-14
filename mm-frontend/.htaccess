@@ -1,0 +1,16 @@
+# Serve the app from the public/ subdirectory while keeping lib/, pages/,
+# layout/ and config/ above the web root (relative to public/index.php).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Already inside public/ — stop, let public/.htaccess handle it.
+  RewriteRule ^public/ - [L]
+  # Map the site root to the front controller.
+  RewriteRule ^$ public/index.php [L]
+  # Route everything else into public/.
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Block direct access to application internals.
+<IfModule mod_rewrite.c>
+  RewriteRule ^(lib|pages|layout|config)/ - [F]
+</IfModule>

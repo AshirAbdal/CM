@@ -1,0 +1,686 @@
+[
+    {
+        "CCP_id": 2,
+        "product_name": "Stretch Tent Configurator",
+        "unit_price": 0,
+        "product_properties": {
+            "configurations": [
+                {
+                    "group": "4.5 / 6 meter",
+                    "label": "4.5x4.5",
+                    "size": "4.5×4.5 meter",
+                    "image": "/assets/images/stretch-config-4-5x4-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "8 persons",
+                        "cocktail": "14 Persons",
+                        "cinema": "20 Persons",
+                        "surface": "20.25 m²",
+                        "coating": "single coated",
+                        "weight": "15kg",
+                        "packed_size": "50x50x100cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "4.5 / 6 meter",
+                    "label": "4.5x7.5",
+                    "size": "4.5×7.5 meter",
+                    "image": "/assets/images/stretch-config-4-5x7-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "14 persons",
+                        "cocktail": "24 Persons",
+                        "cinema": "34 Persons",
+                        "surface": "33.75 m²",
+                        "coating": "single coated",
+                        "weight": "22kg",
+                        "packed_size": "50x50x120cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "4.5 / 6 meter",
+                    "label": "6x6",
+                    "size": "6×6 meter",
+                    "image": "/assets/images/stretch-config-6x6.jpg",
+                    "specifications": {
+                        "seated_dinner": "16 persons",
+                        "cocktail": "28 Persons",
+                        "cinema": "40 Persons",
+                        "surface": "36 m²",
+                        "coating": "single coated",
+                        "weight": "26kg",
+                        "packed_size": "55x55x120cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "4.5 / 6 meter",
+                    "label": "6x10.5",
+                    "size": "6×10.5 meter",
+                    "image": "/assets/images/stretch-config-6x10-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "28 persons",
+                        "cocktail": "48 Persons",
+                        "cinema": "68 Persons",
+                        "surface": "63 m²",
+                        "coating": "single coated",
+                        "weight": "40kg",
+                        "packed_size": "60x60x130cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "4.5 / 6 meter",
+                    "label": "6x15",
+                    "size": "6×15 meter",
+                    "image": "/assets/images/stretch-config-6x15.jpg",
+                    "specifications": {
+                        "seated_dinner": "40 persons",
+                        "cocktail": "70 Persons",
+                        "cinema": "98 Persons",
+                        "surface": "90 m²",
+                        "coating": "single coated",
+                        "weight": "55kg",
+                        "packed_size": "60x60x150cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "7.5 / 9 meter",
+                    "label": "7.5x7.5",
+                    "size": "7.5×7.5 meter",
+                    "image": "/assets/images/stretch-config-7-5x7-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "32 persons",
+                        "cocktail": "56 Persons",
+                        "cinema": "80 Persons",
+                        "surface": "56.25 m²",
+                        "coating": "double coated",
+                        "weight": "35kg",
+                        "packed_size": "60x60x130cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "7.5 / 9 meter",
+                    "label": "7.5x10.5",
+                    "size": "7.5×10.5 meter",
+                    "image": "/assets/images/stretch-config-7-5x10-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "45 persons",
+                        "cocktail": "78 Persons",
+                        "cinema": "110 Persons",
+                        "surface": "78.75 m²",
+                        "coating": "double coated",
+                        "weight": "48kg",
+                        "packed_size": "65x65x140cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "7.5 / 9 meter",
+                    "label": "9x9",
+                    "size": "9×9 meter",
+                    "image": "/assets/images/stretch-config-9x9.jpg",
+                    "specifications": {
+                        "seated_dinner": "50 persons",
+                        "cocktail": "90 Persons",
+                        "cinema": "128 Persons",
+                        "surface": "81 m²",
+                        "coating": "double coated",
+                        "weight": "52kg",
+                        "packed_size": "65x65x150cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "7.5 / 9 meter",
+                    "label": "9x15",
+                    "size": "9×15 meter",
+                    "image": "/assets/images/stretch-config-9x15.jpg",
+                    "specifications": {
+                        "seated_dinner": "85 persons",
+                        "cocktail": "148 Persons",
+                        "cinema": "210 Persons",
+                        "surface": "135 m²",
+                        "coating": "double coated",
+                        "weight": "80kg",
+                        "packed_size": "70x70x160cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "10.5 / 12 meter",
+                    "label": "10.5x10.5",
+                    "size": "10.5×10.5 meter",
+                    "image": "/assets/images/stretch-config-10-5x10-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "64 persons",
+                        "cocktail": "110 Persons",
+                        "cinema": "156 Persons",
+                        "surface": "110.25 m²",
+                        "coating": "double coated",
+                        "weight": "70kg",
+                        "packed_size": "70x70x160cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "10.5 / 12 meter",
+                    "label": "12x12",
+                    "size": "12×12 meter",
+                    "image": "/assets/images/stretch-config-12x12.jpg",
+                    "specifications": {
+                        "seated_dinner": "90 persons",
+                        "cocktail": "155 Persons",
+                        "cinema": "220 Persons",
+                        "surface": "144 m²",
+                        "coating": "double coated",
+                        "weight": "95kg",
+                        "packed_size": "75x75x170cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "10.5 / 12 meter",
+                    "label": "12x18",
+                    "size": "12×18 meter",
+                    "image": "/assets/images/stretch-config-12x18.jpg",
+                    "specifications": {
+                        "seated_dinner": "140 persons",
+                        "cocktail": "240 Persons",
+                        "cinema": "340 Persons",
+                        "surface": "216 m²",
+                        "coating": "double coated",
+                        "weight": "140kg",
+                        "packed_size": "80x80x180cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "15 / 18 Meter",
+                    "label": "15x15",
+                    "size": "15×15 meter",
+                    "image": "/assets/images/stretch-config-15x15.jpg",
+                    "specifications": {
+                        "seated_dinner": "130 persons",
+                        "cocktail": "225 Persons",
+                        "cinema": "320 Persons",
+                        "surface": "225 m²",
+                        "coating": "heavy duty",
+                        "weight": "150kg",
+                        "packed_size": "80x80x190cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "15 / 18 Meter",
+                    "label": "18x18",
+                    "size": "18×18 meter",
+                    "image": "/assets/images/stretch-config-18x18.jpg",
+                    "specifications": {
+                        "seated_dinner": "195 persons",
+                        "cocktail": "335 Persons",
+                        "cinema": "475 Persons",
+                        "surface": "324 m²",
+                        "coating": "heavy duty",
+                        "weight": "210kg",
+                        "packed_size": "85x85x200cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "21 Meter",
+                    "label": "21x21",
+                    "size": "21×21 meter",
+                    "image": "/assets/images/stretch-config-21x21.jpg",
+                    "specifications": {
+                        "seated_dinner": "250 persons",
+                        "cocktail": "440 Persons",
+                        "cinema": "620 Persons",
+                        "surface": "441 m²",
+                        "coating": "heavy duty",
+                        "weight": "290kg",
+                        "packed_size": "90x90x210cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "21 Meter",
+                    "label": "21x25.5",
+                    "size": "21×25.5 meter",
+                    "image": "/assets/images/stretch-config-21x25-5.jpg",
+                    "specifications": {
+                        "seated_dinner": "214 persons",
+                        "cocktail": "357 Persons",
+                        "cinema": "536 Persons",
+                        "surface": "535.5 m²",
+                        "coating": "single coated",
+                        "weight": "402 kg",
+                        "packed_size": "75x100x150cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "21 Meter",
+                    "label": "21x30",
+                    "size": "21×30 meter",
+                    "image": "/assets/images/stretch-config-21x30.jpg",
+                    "specifications": {
+                        "seated_dinner": "252 persons",
+                        "cocktail": "420 Persons",
+                        "cinema": "630 Persons",
+                        "surface": "630 m²",
+                        "coating": "single coated",
+                        "weight": "473 kg",
+                        "packed_size": "75x100x150cm",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                },
+                {
+                    "group": "Specials",
+                    "label": "Custom",
+                    "size": "Made to measure",
+                    "image": "/assets/images/stretch-config-custom.jpg",
+                    "specifications": {
+                        "seated_dinner": "Variable",
+                        "cocktail": "Variable",
+                        "cinema": "Variable",
+                        "surface": "Tailored",
+                        "coating": "Tailored",
+                        "weight": "Tailored",
+                        "packed_size": "Tailored",
+                        "colours": "Sand / Platinum Grey / Taupe / Black / Red / White"
+                    }
+                }
+            ],
+            "colors": [
+                {
+                    "name": "Sand",
+                    "hex": "#e3d6bf"
+                },
+                {
+                    "name": "Platinum Grey",
+                    "hex": "#c9c9c9"
+                },
+                {
+                    "name": "Taupe",
+                    "hex": "#a89a85"
+                },
+                {
+                    "name": "Black",
+                    "hex": "#1a1a1a"
+                },
+                {
+                    "name": "Red",
+                    "hex": "#9b2c2c"
+                },
+                {
+                    "name": "White",
+                    "hex": "#f6f3ec"
+                }
+            ]
+        }
+    },
+    {
+        "CCP_id": 2,
+        "product_name": "Sailcloth Configurator",
+        "unit_price": 0,
+        "product_properties": {
+            "configurations": [
+                {
+                    "group": "6 Meter",
+                    "label": "6x6",
+                    "size": "6×6 meter",
+                    "image": "/assets/images/sailcloth-config-6x6.jpg",
+                    "specifications": {
+                        "seated_dinner": "10 persons",
+                        "cocktail": "16 Persons",
+                        "cinema": "23 Persons",
+                        "surface": "23 m²",
+                        "coating": "coated",
+                        "weight": "10.8kg",
+                        "packed_size": "50x50x100cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "6 Meter",
+                    "label": "6x12",
+                    "size": "6×12 meter",
+                    "image": "/assets/images/sailcloth-config-6x12.jpg",
+                    "specifications": {
+                        "seated_dinner": "24 persons",
+                        "cocktail": "38 Persons",
+                        "cinema": "54 Persons",
+                        "surface": "46 m²",
+                        "coating": "coated",
+                        "weight": "18kg",
+                        "packed_size": "55x55x120cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "6 Meter",
+                    "label": "6x18",
+                    "size": "6×18 meter",
+                    "image": "/assets/images/sailcloth-config-6x18.jpg",
+                    "specifications": {
+                        "seated_dinner": "40 persons",
+                        "cocktail": "64 Persons",
+                        "cinema": "90 Persons",
+                        "surface": "69 m²",
+                        "coating": "coated",
+                        "weight": "26kg",
+                        "packed_size": "60x60x130cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "6 Meter",
+                    "label": "6x24",
+                    "size": "6×24 meter",
+                    "image": "/assets/images/sailcloth-config-6x24.jpg",
+                    "specifications": {
+                        "seated_dinner": "56 persons",
+                        "cocktail": "90 Persons",
+                        "cinema": "128 Persons",
+                        "surface": "92 m²",
+                        "coating": "coated",
+                        "weight": "34kg",
+                        "packed_size": "60x60x140cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "6 Meter",
+                    "label": "6x30",
+                    "size": "6×30 meter",
+                    "image": "/assets/images/sailcloth-config-6x30.jpg",
+                    "specifications": {
+                        "seated_dinner": "72 persons",
+                        "cocktail": "115 Persons",
+                        "cinema": "162 Persons",
+                        "surface": "115 m²",
+                        "coating": "coated",
+                        "weight": "42kg",
+                        "packed_size": "60x60x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "8 Meter",
+                    "label": "8x8",
+                    "size": "8×8 meter",
+                    "image": "/assets/images/sailcloth-config-8x8.jpg",
+                    "specifications": {
+                        "seated_dinner": "20 persons",
+                        "cocktail": "32 Persons",
+                        "cinema": "45 Persons",
+                        "surface": "40 m²",
+                        "coating": "coated",
+                        "weight": "16kg",
+                        "packed_size": "55x55x120cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "8 Meter",
+                    "label": "8x16",
+                    "size": "8×16 meter",
+                    "image": "/assets/images/sailcloth-config-8x16.jpg",
+                    "specifications": {
+                        "seated_dinner": "46 persons",
+                        "cocktail": "72 Persons",
+                        "cinema": "100 Persons",
+                        "surface": "80 m²",
+                        "coating": "coated",
+                        "weight": "30kg",
+                        "packed_size": "60x60x140cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "8 Meter",
+                    "label": "8x24",
+                    "size": "8×24 meter",
+                    "image": "/assets/images/sailcloth-config-8x24.jpg",
+                    "specifications": {
+                        "seated_dinner": "72 persons",
+                        "cocktail": "115 Persons",
+                        "cinema": "160 Persons",
+                        "surface": "120 m²",
+                        "coating": "coated",
+                        "weight": "46kg",
+                        "packed_size": "65x65x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "8 Meter",
+                    "label": "8x32",
+                    "size": "8×32 meter",
+                    "image": "/assets/images/sailcloth-config-8x32.jpg",
+                    "specifications": {
+                        "seated_dinner": "98 persons",
+                        "cocktail": "155 Persons",
+                        "cinema": "220 Persons",
+                        "surface": "160 m²",
+                        "coating": "coated",
+                        "weight": "60kg",
+                        "packed_size": "70x70x160cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "10 meter",
+                    "label": "10x10",
+                    "size": "10×10 meter",
+                    "image": "/assets/images/sailcloth-config-10x10.jpg",
+                    "specifications": {
+                        "seated_dinner": "35 persons",
+                        "cocktail": "55 Persons",
+                        "cinema": "78 Persons",
+                        "surface": "63 m²",
+                        "coating": "coated",
+                        "weight": "24kg",
+                        "packed_size": "60x60x140cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "10 meter",
+                    "label": "10x20",
+                    "size": "10×20 meter",
+                    "image": "/assets/images/sailcloth-config-10x20.jpg",
+                    "specifications": {
+                        "seated_dinner": "80 persons",
+                        "cocktail": "128 Persons",
+                        "cinema": "180 Persons",
+                        "surface": "126 m²",
+                        "coating": "coated",
+                        "weight": "46kg",
+                        "packed_size": "65x65x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "10 meter",
+                    "label": "10x30",
+                    "size": "10×30 meter",
+                    "image": "/assets/images/sailcloth-config-10x30.jpg",
+                    "specifications": {
+                        "seated_dinner": "125 persons",
+                        "cocktail": "200 Persons",
+                        "cinema": "280 Persons",
+                        "surface": "188 m²",
+                        "coating": "coated",
+                        "weight": "68kg",
+                        "packed_size": "70x70x160cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "12 Meter",
+                    "label": "12x12",
+                    "size": "12×12 meter",
+                    "image": "/assets/images/sailcloth-config-12x12.jpg",
+                    "specifications": {
+                        "seated_dinner": "50 persons",
+                        "cocktail": "80 Persons",
+                        "cinema": "115 Persons",
+                        "surface": "90 m²",
+                        "coating": "coated",
+                        "weight": "34kg",
+                        "packed_size": "65x65x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "12 Meter",
+                    "label": "12x24",
+                    "size": "12×24 meter",
+                    "image": "/assets/images/sailcloth-config-12x24.jpg",
+                    "specifications": {
+                        "seated_dinner": "115 persons",
+                        "cocktail": "184 Persons",
+                        "cinema": "260 Persons",
+                        "surface": "180 m²",
+                        "coating": "coated",
+                        "weight": "64kg",
+                        "packed_size": "70x70x160cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "12 Meter",
+                    "label": "12x36",
+                    "size": "12×36 meter",
+                    "image": "/assets/images/sailcloth-config-12x36.jpg",
+                    "specifications": {
+                        "seated_dinner": "180 persons",
+                        "cocktail": "290 Persons",
+                        "cinema": "405 Persons",
+                        "surface": "270 m²",
+                        "coating": "coated",
+                        "weight": "95kg",
+                        "packed_size": "75x75x170cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "14 Meter",
+                    "label": "14x14",
+                    "size": "14×14 meter",
+                    "image": "/assets/images/sailcloth-config-14x14.jpg",
+                    "specifications": {
+                        "seated_dinner": "70 persons",
+                        "cocktail": "110 Persons",
+                        "cinema": "160 Persons",
+                        "surface": "126 m²",
+                        "coating": "coated",
+                        "weight": "48kg",
+                        "packed_size": "70x70x160cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "14 Meter",
+                    "label": "14x28",
+                    "size": "14×28 meter",
+                    "image": "/assets/images/sailcloth-config-14x28.jpg",
+                    "specifications": {
+                        "seated_dinner": "160 persons",
+                        "cocktail": "255 Persons",
+                        "cinema": "360 Persons",
+                        "surface": "252 m²",
+                        "coating": "coated",
+                        "weight": "90kg",
+                        "packed_size": "75x75x170cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "14 Meter",
+                    "label": "14x42",
+                    "size": "14×42 meter",
+                    "image": "/assets/images/sailcloth-config-14x42.jpg",
+                    "specifications": {
+                        "seated_dinner": "250 persons",
+                        "cocktail": "400 Persons",
+                        "cinema": "560 Persons",
+                        "surface": "378 m²",
+                        "coating": "coated",
+                        "weight": "135kg",
+                        "packed_size": "80x80x180cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "20 Meter",
+                    "label": "20x20",
+                    "size": "20×20 meter",
+                    "image": "/assets/images/sailcloth-config-20x20.jpg",
+                    "specifications": {
+                        "seated_dinner": "134 persons",
+                        "cocktail": "224 Persons",
+                        "cinema": "335 Persons",
+                        "surface": "335 m²",
+                        "coating": "coated",
+                        "weight": "120kg",
+                        "packed_size": "75x100x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "20 Meter",
+                    "label": "20x26",
+                    "size": "20×26 meter",
+                    "image": "/assets/images/sailcloth-config-20x26.jpg",
+                    "specifications": {
+                        "seated_dinner": "182 persons",
+                        "cocktail": "304 Persons",
+                        "cinema": "455 Persons",
+                        "surface": "455 m²",
+                        "coating": "coated",
+                        "weight": "156kg",
+                        "packed_size": "50x75x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "20 Meter",
+                    "label": "20x32",
+                    "size": "20×32 meter",
+                    "image": "/assets/images/sailcloth-config-20x32.jpg",
+                    "specifications": {
+                        "seated_dinner": "230 persons",
+                        "cocktail": "384 Persons",
+                        "cinema": "575 Persons",
+                        "surface": "575 m²",
+                        "coating": "coated",
+                        "weight": "192kg",
+                        "packed_size": "75x100x150cm",
+                        "colours": "Ivory"
+                    }
+                },
+                {
+                    "group": "20 Meter",
+                    "label": "20x38",
+                    "size": "20×38 meter",
+                    "image": "/assets/images/sailcloth-config-20x38.jpg",
+                    "specifications": {
+                        "seated_dinner": "278 persons",
+                        "cocktail": "464 Persons",
+                        "cinema": "695 Persons",
+                        "surface": "695 m²",
+                        "coating": "coated",
+                        "weight": "228kg",
+                        "packed_size": "75x100x150cm",
+                        "colours": "Ivory"
+                    }
+                }
+            ]
+        }
+    }
+]
