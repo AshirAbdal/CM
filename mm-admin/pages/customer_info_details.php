@@ -37,6 +37,7 @@ $enrichedCount = count(array_filter($leads, fn($l) => !empty($l['apollo'])));
 $withOrders    = count(array_filter($leads, fn($l) => (int) ($l['order_count'] ?? 0) > 0));
 $warmLeads     = count(array_filter($leads, fn($l) => !empty($l['is_warm_lead'])));
 $newLeads      = count(array_filter($leads, fn($l) => !empty($l['has_unread'])));
+$coldLeads     = count(array_filter($leads, fn($l) => !empty($l['is_cold_lead'])));
 
 $jsApiBase = json_encode(API_BASE);
 $jsApiKey  = json_encode(API_KEY);
@@ -64,13 +65,19 @@ const _jwt       = <?= $jsJwt ?>;
 <div class="space-y-8">
 
     <!-- Page heading -->
-    <div>
-        <h2 class="text-xl font-semibold text-gray-800">Leads</h2>
-        <p class="text-sm text-gray-500 mt-1">All enquiries submitted through website forms.</p>
+    <div class="flex items-start justify-between flex-wrap gap-4">
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800">Customer Information</h2>
+            <p class="text-sm text-gray-500 mt-1">All enquiries submitted through website forms.</p>
+        </div>
+        <button id="sync-btn" onclick="syncColdLeads()"
+                class="inline-flex items-center gap-2 text-sm bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+            <span id="sync-icon">&#10227;</span> Sync Cold Leads
+        </button>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div class="bg-white rounded-xl border border-gray-200 p-5">
             <p class="text-sm text-gray-500">Total Leads</p>
             <p class="mt-1 text-3xl font-bold text-gray-800"><?= $totalDisplay ?></p>
@@ -84,12 +91,17 @@ const _jwt       = <?= $jsJwt ?>;
         <div class="bg-white rounded-xl border border-orange-100 p-5">
             <p class="text-sm text-orange-600 font-medium">&#9733; Warm Leads</p>
             <p class="mt-1 text-3xl font-bold text-orange-600"><?= $warmLeads ?></p>
-            <p class="text-xs text-gray-400 mt-1">submitted via website forms</p>
+            <p class="text-xs text-gray-400 mt-1">submitted via forms</p>
+        </div>
+        <div class="bg-white rounded-xl border border-cyan-100 p-5">
+            <p class="text-sm text-cyan-600 font-medium">&#10052; Cold Leads</p>
+            <p class="mt-1 text-3xl font-bold text-cyan-600"><?= $coldLeads ?></p>
+            <p class="text-xs text-gray-400 mt-1">replied to Apollo email</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-5">
             <p class="text-sm text-gray-500">Apollo Enriched</p>
             <p class="mt-1 text-3xl font-bold text-gray-800"><?= $enrichedCount ?></p>
-            <p class="text-xs text-gray-400 mt-1">professional data available</p>
+            <p class="text-xs text-gray-400 mt-1">professional data</p>
         </div>
     </div>
 
@@ -120,6 +132,11 @@ const _jwt       = <?= $jsJwt ?>;
                                 <?php if (!empty($row['has_unread'])): ?>
                                 <span class="text-xs font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
                                     New
+                                </span>
+                                <?php endif; ?>
+                                <?php if (!empty($row['is_cold_lead'])): ?>
+                                <span class="text-xs font-semibold bg-cyan-50 text-cyan-600 border border-cyan-200 px-1.5 py-0.5 rounded-full">
+                                    &#10052; Cold Lead
                                 </span>
                                 <?php endif; ?>
                                 <?php if (!empty($row['is_warm_lead'])): ?>
@@ -510,4 +527,38 @@ function _esc(str) {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLead(); });
+
+function syncColdLeads() {
+    const btn  = document.getElementById('sync-btn');
+    const icon = document.getElementById('sync-icon');
+    if (!btn) return;
+    btn.disabled  = true;
+    btn.classList.add('opacity-60');
+    icon.textContent = '⟳';
+
+    fetch(`${_apiBase}/wl/admin/apollo/sync-cold-leads`, {
+        method: 'POST',
+        headers: {
+            'Content-Type':  'application/json',
+            'X-API-Key':     _apiKey,
+            'Authorization': 'Bearer ' + _jwt,
+        },
+        body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(json => {
+        if (json.success) {
+            alert('Sync complete — ' + json.synced + ' cold lead(s) synced from Apollo.io. Refreshing...');
+            location.reload();
+        } else {
+            alert('Sync failed: ' + (json.error || 'Unknown error'));
+        }
+    })
+    .catch(err => alert('Request failed: ' + err.message))
+    .finally(() => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+        icon.textContent = '↻';
+    });
+}
 </script>

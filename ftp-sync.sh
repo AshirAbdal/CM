@@ -1,40 +1,63 @@
 #!/usr/bin/env bash
 #
-# lftp helper for the Majestic Marquees frontend server.
+# lftp helper for the Majestic Marquees servers (frontend + admin).
 #
-# The server REQUIRES explicit FTPS (FTP over TLS). Plain FTP connects but
+# Both servers REQUIRE explicit FTPS (FTP over TLS). Plain FTP connects but
 # data transfers (ls / get / put) fail with "max-retries exceeded".
 #
 # Usage:
-#   ./ftp-sync.sh shell          # open an interactive lftp session
-#   ./ftp-sync.sh ls [path]      # list a remote directory
-#   ./ftp-sync.sh pull           # mirror remote  -> local  (download site)
-#   ./ftp-sync.sh push           # mirror local   -> remote (upload site)
-#   ./ftp-sync.sh push --dry-run # preview what an upload would change
+#   ./ftp-sync.sh <site> <command> [args]
+#     <site>    = frontend | admin
+#     <command> = shell | ls [path] | pull | push [--dry-run]
 #
-# Credentials: set the password once in your shell, e.g.
-#   export FTP_PASSWORD='K1fpuzc3%TzyVvKu'
-# or create a file ".ftp-pass" (gitignored) containing just the password.
+# Examples:
+#   ./ftp-sync.sh frontend ls
+#   ./ftp-sync.sh admin push --dry-run
+#   ./ftp-sync.sh admin push
+#
+# Credentials are read from gitignored files next to this script:
+#   .ftp-pass-frontend   -> password for the frontend server
+#   .ftp-pass-admin      -> password for the admin server
+# (You are prompted if the matching file is missing.)
 
 set -euo pipefail
 
-HOST="website.majesticmarquees.clickdigim.com"
-USER="admin@website.majesticmarquees.clickdigim.com"
-LOCAL_DIR="mm-frontend"   # local folder that maps to the remote web root
-REMOTE_DIR="."            # remote web root (the FTP login home directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+site="${1:-}"
+shift || true
+
+case "$site" in
+  frontend)
+    HOST="website.majesticmarquees.clickdigim.com"
+    USER="admin@website.majesticmarquees.clickdigim.com"
+    LOCAL_DIR="mm-frontend"
+    PASS_FILE="${SCRIPT_DIR}/.ftp-pass-frontend"
+    ;;
+  admin)
+    HOST="admin.majesticmarquees.clickdigim.com"
+    USER="admin@admin.majesticmarquees.clickdigim.com"
+    LOCAL_DIR="mm-admin"
+    PASS_FILE="${SCRIPT_DIR}/.ftp-pass-admin"
+    ;;
+  *)
+    echo "Usage: ./ftp-sync.sh <frontend|admin> <shell|ls|pull|push> [args]" >&2
+    exit 1
+    ;;
+esac
+
+REMOTE_DIR="."   # remote web root (the FTP login home directory)
 
 # --- resolve password -------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -z "${FTP_PASSWORD:-}" && -f "${SCRIPT_DIR}/.ftp-pass" ]]; then
-  FTP_PASSWORD="$(<"${SCRIPT_DIR}/.ftp-pass")"
-fi
-if [[ -z "${FTP_PASSWORD:-}" ]]; then
+if [[ -f "$PASS_FILE" ]]; then
+  FTP_PASSWORD="$(<"$PASS_FILE")"
+else
   read -r -s -p "FTP password for ${USER}: " FTP_PASSWORD
   echo
 fi
 export LFTP_PASSWORD="$FTP_PASSWORD"
 
-# Settings that make explicit FTPS work on this host.
+# Settings that make explicit FTPS work on these hosts.
 COMMON_SETTINGS='
 set ftp:ssl-allow yes;
 set ftp:ssl-force yes;
@@ -61,10 +84,12 @@ case "$cmd" in
     run_lftp "cls -l ${1:-$REMOTE_DIR}; bye"
     ;;
   pull)
-    run_lftp "mirror --verbose ${*} \"$REMOTE_DIR\" \"${SCRIPT_DIR}/${LOCAL_DIR}\"; bye"
+    run_lftp "mirror --verbose ${*:-} ${REMOTE_DIR} ${SCRIPT_DIR}/${LOCAL_DIR}; bye"
     ;;
   push)
-    run_lftp "mirror --reverse --verbose --delete-first=no ${*} \"${SCRIPT_DIR}/${LOCAL_DIR}\" \"$REMOTE_DIR\"; bye"
+    # NOTE: no --delete flag, so remote-only files (root assets/, logo.png,
+    # favicon.svg, index.html, etc.) are preserved and never removed.
+    run_lftp "mirror --reverse --verbose ${*:-} ${SCRIPT_DIR}/${LOCAL_DIR} ${REMOTE_DIR}; bye"
     ;;
   *)
     echo "Unknown command: $cmd" >&2

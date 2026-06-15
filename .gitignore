@@ -1,2 +1,4 @@
 .ftp-pass
 .DS_Store
+.ftp-pass-frontend
+.ftp-pass-admin
