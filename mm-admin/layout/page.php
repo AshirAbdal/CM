@@ -76,6 +76,12 @@ $layout = $layout ?? 'app';
                         Image Manager
                     </a>
                 </li>
+                <li>
+                    <a href="/inventory" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'inventory' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                        <span class="text-base leading-none">&#9707;</span>
+                        Inventory
+                    </a>
+                </li>
             </ul>
         </nav>
 

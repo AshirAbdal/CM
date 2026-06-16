@@ -52,6 +52,16 @@ if (in_array($path, ['/', '/login'])) {
 } elseif ($path === '/images') {
     if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
     $pageFile = __DIR__ . '/../pages/images.php';
+} elseif ($path === '/inventory') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/inventory.php';
+} elseif (preg_match('#^/estimate/([a-f0-9]{64})$#', $path, $m)) {
+    // Public estimate page — no auth required
+    $_GET['token'] = $m[1];
+    $pageFile = __DIR__ . '/../pages/estimate_public.php';
+    // Public page — output directly, skip admin layout
+    require $pageFile;
+    exit;
 } else {
     http_response_code(404);
     echo '<!DOCTYPE html><html><body><h1>404 — Page Not Found</h1></body></html>';
