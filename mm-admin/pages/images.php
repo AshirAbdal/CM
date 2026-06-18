@@ -26,7 +26,7 @@ $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($status === 401) {
-    // JWT expired or invalid — kick back to login
+    // JWT expired or invalid - kick back to login
     session_destroy();
     header('Location: /login');
     exit;
@@ -63,18 +63,18 @@ if ($targetDir === null) {
     $targetDir = dirname(__DIR__, 2) . '/mm-frontend/public/assets/';
 }
 
-// Build full config — grouped by section
+// Build full config - grouped by section
 $sections = [
     'Site'        => [
         'logo'             => ['file' => '../logo.png',                        'title' => 'Site Logo'],
     ],
     'Home'        => [
         'home_hero'        => ['file' => 'images/home-hero-bg.jpg',            'title' => 'Hero Background'],
-        'home_story_1'     => ['file' => 'images/home-story-1.jpg',            'title' => 'Our Story — Left'],
-        'home_story_2'     => ['file' => 'images/home-story-2.jpg',            'title' => 'Our Story — Right'],
+        'home_story_1'     => ['file' => 'images/home-story-1.jpg',            'title' => 'Our Story - Left'],
+        'home_story_2'     => ['file' => 'images/home-story-2.jpg',            'title' => 'Our Story - Right'],
         'home_features'    => ['file' => 'images/home-features-bg.jpg',        'title' => 'Features Background'],
     ],
-    'Home — Tent Carousel (12 slides)' => array_combine(
+    'Home - Tent Carousel (12 slides)' => array_combine(
         array_map(fn($i) => "home_tent_$i", range(1, 12)),
         array_map(fn($i) => ['file' => "images/home-tent-carousel-$i.jpg", 'title' => "Tent Carousel $i"], range(1, 12))
     ),
@@ -85,17 +85,17 @@ $sections = [
     ],
     'Contact'     => [
         'contact_hero'     => ['file' => 'images/contact-hero-bg.jpg',         'title' => 'Hero Background'],
-        'contact_vision_1' => ['file' => 'images/contact-vision-1.jpg',        'title' => 'Vision — Image 1'],
-        'contact_vision_2' => ['file' => 'images/contact-vision-2.jpg',        'title' => 'Vision — Image 2'],
-        'contact_vision_3' => ['file' => 'images/contact-vision-3.jpg',        'title' => 'Vision — Image 3'],
-        'contact_vision_4' => ['file' => 'images/contact-vision-4.jpg',        'title' => 'Vision — Image 4'],
+        'contact_vision_1' => ['file' => 'images/contact-vision-1.jpg',        'title' => 'Vision - Image 1'],
+        'contact_vision_2' => ['file' => 'images/contact-vision-2.jpg',        'title' => 'Vision - Image 2'],
+        'contact_vision_3' => ['file' => 'images/contact-vision-3.jpg',        'title' => 'Vision - Image 3'],
+        'contact_vision_4' => ['file' => 'images/contact-vision-4.jpg',        'title' => 'Vision - Image 4'],
     ],
     'Gallery'     => [
         'gallery_hero'     => ['file' => 'images/gallery-hero-bg.jpg',         'title' => 'Hero Background'],
         'gallery_process'  => ['file' => 'images/gallery-process-image.jpg',   'title' => 'Process Image'],
         'gallery_faq'      => ['file' => 'images/gallery-faq-image.jpg',       'title' => 'FAQ Section Image'],
     ],
-    'Gallery — Showcase (20 images)'  => array_combine(
+    'Gallery - Showcase (20 images)'  => array_combine(
         array_map(fn($i) => "gallery_showcase_$i", range(1, 20)),
         array_map(fn($i) => ['file' => "images/gallery-showcase-$i.jpg", 'title' => "Showcase $i"], range(1, 20))
     ),
@@ -113,27 +113,27 @@ $sections = [
         'our_tents_step_1'        => ['file' => 'images/our-tents-step-1.webp',      'title' => 'Discover Step 1'],
         'our_tents_step_2'        => ['file' => 'images/our-tents-step-2.webp',      'title' => 'Discover Step 2'],
         'our_tents_step_3'        => ['file' => 'images/our-tents-step-3.webp',      'title' => 'Discover Step 3'],
-        'our_tents_stretch_card'  => ['file' => 'images/our-tents-stretch-card.jpg', 'title' => 'Tent Style — Stretch Card'],
-        'our_tents_sailcloth_card'=> ['file' => 'images/our-tents-sailcloth-card.jpg','title' => 'Tent Style — Sailcloth Card'],
-        'our_tents_custom_card'   => ['file' => 'images/our-tents-custom-card.jpg',  'title' => 'Tent Style — Custom Card'],
+        'our_tents_stretch_card'  => ['file' => 'images/our-tents-stretch-card.jpg', 'title' => 'Tent Style - Stretch Card'],
+        'our_tents_sailcloth_card'=> ['file' => 'images/our-tents-sailcloth-card.jpg','title' => 'Tent Style - Sailcloth Card'],
+        'our_tents_custom_card'   => ['file' => 'images/our-tents-custom-card.jpg',  'title' => 'Tent Style - Custom Card'],
     ],
-    'Our Tents — Carousel (12 slides)' => array_combine(
+    'Our Tents - Carousel (12 slides)' => array_combine(
         array_map(fn($i) => "our_tents_carousel_$i", range(1, 12)),
         array_map(fn($i) => ['file' => "images/our-tents-carousel-$i.jpg", 'title' => "Carousel $i"], range(1, 12))
     ),
-    'Stretch / Nomadic — Hero + Carousel' => array_merge(
+    'Stretch / Nomadic - Hero + Carousel' => array_merge(
         ['stretch_hero' => ['file' => 'images/stretch-hero-bg.jpg', 'title' => 'Hero Background']],
         array_combine(
             array_map(fn($i) => "stretch_carousel_$i", range(1, 12)),
             array_map(fn($i) => ['file' => "images/stretch-carousel-$i.jpg", 'title' => "Carousel $i"], range(1, 12))
         )
     ),
-    'Stretch / Nomadic — Sections' => [
+    'Stretch / Nomadic - Sections' => [
         'stretch_quote'        => ['file' => 'images/stretch-quote-bg.webp',   'title' => 'Quote Form Background'],
         'stretch_canvas_tent'  => ['file' => 'images/stretch-canvas-tent.webp','title' => 'Canvas Tent Image'],
         'stretch_colors'       => ['file' => 'images/stretch-colors.webp',     'title' => 'Colors Image'],
     ],
-    'Why QTents — Icons (shared: Stretch & Sailcloth)' => [
+    'Why QTents - Icons (shared: Stretch & Sailcloth)' => [
         'why_fabrics'      => ['file' => 'images/stretch-why-fabrics.webp',      'title' => 'Fabrics'],
         'why_waterproof'   => ['file' => 'images/stretch-why-waterproof.webp',   'title' => 'Waterproof'],
         'why_firesafe'     => ['file' => 'images/stretch-why-firesafe.webp',     'title' => 'Fire Safe'],
@@ -142,19 +142,19 @@ $sections = [
         'why_printing'     => ['file' => 'images/stretch-why-printing.webp',     'title' => 'Printing'],
         'why_instructions' => ['file' => 'images/stretch-why-instructions.webp', 'title' => 'Instructions'],
     ],
-    'Sailcloth — Hero + Carousel' => array_merge(
+    'Sailcloth - Hero + Carousel' => array_merge(
         ['sailcloth_hero' => ['file' => 'images/sailcloth-hero-bg.jpg', 'title' => 'Hero Background']],
         array_combine(
             array_map(fn($i) => "sailcloth_carousel_$i", range(1, 12)),
             array_map(fn($i) => ['file' => "images/sailcloth-carousel-$i.jpg", 'title' => "Carousel $i"], range(1, 12))
         )
     ),
-    'Sailcloth — Sections' => [
+    'Sailcloth - Sections' => [
         'sailcloth_quote'         => ['file' => 'images/sailcloth-quote-bg.webp',     'title' => 'Quote Form Background'],
         'sailcloth_canvas_layers' => ['file' => 'images/sailcloth-canvas-layers.webp','title' => 'Canvas Layers Image'],
         'sailcloth_why_bg'        => ['file' => 'images/sailcloth-why-bg.webp',       'title' => 'Why Section Background'],
     ],
-    'Custom / Bespoke — Hero + Carousel' => array_merge(
+    'Custom / Bespoke - Hero + Carousel' => array_merge(
         [
             'custom_hero'  => ['file' => 'images/custom-hero-bg.jpg',   'title' => 'Hero Background'],
             'custom_quote' => ['file' => 'images/custom-quote-bg.jpg',  'title' => 'Quote Background'],
@@ -164,7 +164,7 @@ $sections = [
             array_map(fn($i) => ['file' => "images/custom-carousel-$i.jpg", 'title' => "Carousel $i"], range(1, 12))
         )
     ),
-    'Stretch / Nomadic — Configurator Sizes (18)' => [
+    'Stretch / Nomadic - Configurator Sizes (18)' => [
         'stretch_config_4-5x4-5'   => ['file' => 'images/stretch-config-4-5x4-5.jpg',   'title' => '4.5×4.5'],
         'stretch_config_4-5x7-5'   => ['file' => 'images/stretch-config-4-5x7-5.jpg',   'title' => '4.5×7.5'],
         'stretch_config_6x6'       => ['file' => 'images/stretch-config-6x6.jpg',       'title' => '6×6'],
@@ -184,7 +184,7 @@ $sections = [
         'stretch_config_21x30'     => ['file' => 'images/stretch-config-21x30.jpg',     'title' => '21×30'],
         'stretch_config_custom'    => ['file' => 'images/stretch-config-custom.jpg',    'title' => 'Custom'],
     ],
-    'Sailcloth — Configurator Sizes (22)' => [
+    'Sailcloth - Configurator Sizes (22)' => [
         'sailcloth_config_6x6'    => ['file' => 'images/sailcloth-config-6x6.jpg',    'title' => '6×6'],
         'sailcloth_config_6x12'   => ['file' => 'images/sailcloth-config-6x12.jpg',   'title' => '6×12'],
         'sailcloth_config_6x18'   => ['file' => 'images/sailcloth-config-6x18.jpg',   'title' => '6×18'],
@@ -243,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
         } else {
             $targetPath = realpath($targetDir) . '/' . $images_config[$key]['file'];
 
-            // Prevent path traversal — resolved target must stay inside $targetDir
+            // Prevent path traversal - resolved target must stay inside $targetDir
             if (strpos(realpath(dirname($targetPath)) . '/', realpath($targetDir) . '/') !== 0) {
                 $message     = 'Security error: path traversal detected.';
                 $messageType = 'error';
@@ -251,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
                 $message     = 'Successfully replaced: ' . e($images_config[$key]['title']);
                 $messageType = 'success';
             } else {
-                $message     = 'Write failed — check folder permissions on mm-frontend/public/assets/';
+                $message     = 'Write failed - check folder permissions on mm-frontend/public/assets/';
                 $messageType = 'error';
             }
         }
@@ -269,7 +269,7 @@ $activeNav = 'images';
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Image Manager — Majestic Marquees Admin"
+    "title": "Image Manager - Majestic Marquees Admin"
 }
 </script>
 
@@ -278,14 +278,14 @@ $activeNav = 'images';
         <h2 class="text-xl font-semibold text-gray-800">Image Manager</h2>
         <p class="text-sm text-gray-500 mt-1">
             Upload a replacement image to instantly overwrite the live file.
-            The current image is always shown — if it looks like the wrong picture, just replace it.
+            The current image is always shown - if it looks like the wrong picture, just replace it.
         </p>
         <div class="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-800 space-y-1">
-            <p class="font-semibold">Before you upload — size &amp; resolution</p>
+            <p class="font-semibold">Before you upload - size &amp; resolution</p>
             <ul class="list-disc list-inside space-y-0.5">
                 <li><span class="font-medium">Max file size: 2&nbsp;MB.</span> Larger files are rejected with an "upload error (code 1)". Compress the photo first (e.g. tinypng.com) if it is bigger.</li>
                 <li><span class="font-medium">Formats:</span> JPEG, PNG, WebP, GIF or AVIF only.</li>
-                <li><span class="font-medium">Configurator (tent size) images:</span> displayed at a 4:3 ratio and cropped to fit — use a 4:3 image (e.g. 1200×900 or 1600×1200) to avoid unwanted cropping.</li>
+                <li><span class="font-medium">Configurator (tent size) images:</span> displayed at a 4:3 ratio and cropped to fit - use a 4:3 image (e.g. 1200×900 or 1600×1200) to avoid unwanted cropping.</li>
                 <li>There is no minimum resolution, but use sharp images at least 1000&nbsp;px wide for best quality.</li>
             </ul>
         </div>
@@ -310,7 +310,7 @@ $activeNav = 'images';
                 $fullPath = realpath($targetDir) . '/' . $cfg['file'];
                 $exists   = file_exists($fullPath);
 
-                // Build base64 preview — read directly from disk so it works
+                // Build base64 preview - read directly from disk so it works
                 // regardless of which port the admin is running on
                 $previewSrc = null;
                 if ($exists) {

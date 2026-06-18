@@ -1,4 +1,4 @@
-/* Majestic Marquees — vanilla JS component behaviours.
+/* Majestic Marquees - vanilla JS component behaviours.
    Replaces the React components (DynamicImage, Carousel, Accordion,
    Testimonials, configurators, mobile menu) with pure DOM logic.
    window.MM.hydrate(root) is re-run after every SPA navigation. */
@@ -343,6 +343,79 @@
         });
     }
 
+    /* ── Google reCAPTCHA (explicit render, SPA-safe) ───────── */
+    function renderRecaptcha(root) {
+        root = root || document;
+        if (!window.grecaptcha || !window.grecaptcha.render) return; // api.js not loaded yet - onload callback will handle it
+        var widgets = root.querySelectorAll('.g-recaptcha');
+        Array.prototype.forEach.call(widgets, function (el) {
+            if (el.getAttribute('data-rendered')) return;
+            el.setAttribute('data-rendered', '1');
+            try {
+                window.grecaptcha.render(el, {
+                    sitekey: el.getAttribute('data-sitekey'),
+                    theme: el.getAttribute('data-theme') || 'light'
+                });
+            } catch (e) {
+                el.removeAttribute('data-rendered');
+            }
+        });
+    }
+    // Called by reCAPTCHA's api.js once it finishes loading.
+    window.onloadRecaptchaCallback = function () { renderRecaptcha(document); };
+
+    /* ── AJAX form submission (quote / contact) ─────────────────
+       The verified-quote and contact forms post in place instead of
+       doing a full-page reload. This keeps the visitor on the same
+       section (no jump to the header), preserves the PHP session, and
+       avoids the browser re-submitting the POST when the page is later
+       reloaded ("session expired"). The server returns the page
+       fragment; we swap just the form's section back in. */
+    function setSubmitting(form, on) {
+        var btn = form.querySelector('button[type="submit"], button:not([type])');
+        if (on) {
+            form.setAttribute('data-submitting', '1');
+            if (btn) { btn.disabled = true; btn.classList.add('opacity-60', 'cursor-not-allowed'); }
+        } else {
+            form.removeAttribute('data-submitting');
+            if (btn) { btn.disabled = false; btn.classList.remove('opacity-60', 'cursor-not-allowed'); }
+        }
+    }
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || form.tagName !== 'FORM') return;
+        var region = form.closest('[data-ajax-form-region]');
+        if (!region || !region.id) return;          // not an AJAX-managed form
+        e.preventDefault();
+        if (form.getAttribute('data-submitting')) return;
+        setSubmitting(form, true);
+
+        var regionId = region.id;
+        var url = window.location.pathname + window.location.search;
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-SPA-Request': 'true' },
+            body: new FormData(form),
+            credentials: 'same-origin'
+        })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var tmp = document.createElement('div');
+                tmp.innerHTML = html;
+                var fresh = tmp.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(regionId) : regionId));
+                if (!fresh) { window.location.reload(); return; }
+                region.replaceWith(fresh);
+                if (window.MM && window.MM.hydrate) { window.MM.hydrate(fresh); }
+            })
+            .catch(function () {
+                // Network error - fall back to a normal full-page submit.
+                setSubmitting(form, false);
+                form.submit();
+            });
+    });
+
     /* ── Public hydrate ─────────────────────────────────────── */
     function hydrate(root) {
         root = root || document;
@@ -350,6 +423,7 @@
         initAccordions(root);
         initTestimonials(root);
         initConfigurators(root);
+        renderRecaptcha(root);
         updateActiveNav(window.location.pathname);
     }
 

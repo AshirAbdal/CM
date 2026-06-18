@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 /**
  * Shared helpers for the Majestic Marquees raw-PHP frontend.
- * Pure PHP — no framework. Included once by public/index.php.
+ * Pure PHP - no framework. Included once by public/index.php.
  */
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
@@ -11,6 +11,23 @@ define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.click
 define('API_KEY',  'mq-prod-public-key-001');
 define('ORIGIN',   $_is_local ? 'http://localhost:8001'   : 'https://website.majesticmarquees.clickdigim.com');
 unset($_is_local);
+
+// ─────────────────────────────────────────────────────────────────
+// Email-code verification (held in the PHP session, no backend table).
+// ─────────────────────────────────────────────────────────────────
+define('FORM_CODE_TTL',     600);   // seconds the emailed code stays valid (10 min)
+define('FORM_MAX_ATTEMPTS', 5);     // wrong-code tries before the visitor must restart
+
+// ─────────────────────────────────────────────────────────────────
+// Google reCAPTCHA v2 (checkbox) - bot protection on public forms.
+//   • Site key   (public, rendered in the form)        → RECAPTCHA_SITE_KEY
+//   • Secret key (private, used in server-side verify)  → RECAPTCHA_SECRET_KEY
+// Docs: https://developers.google.com/recaptcha/docs/display
+//       https://developers.google.com/recaptcha/docs/verify
+// ─────────────────────────────────────────────────────────────────
+define('RECAPTCHA_SITE_KEY',   '6LfUaSQtAAAAAIam7YoA7X3pPvqhYQQGDaqtxel6');
+define('RECAPTCHA_SECRET_KEY', '6LfUaSQtAAAAAICBppCx2Ro-IeEedzhSZ45VS-jk');
+
 
 /** Escape a string for safe HTML output. */
 function e(?string $value): string
@@ -33,14 +50,59 @@ function csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
-/** Verify a submitted CSRF token, then rotate it. Returns true when valid. */
+/** Verify a submitted CSRF token against the stable per-session token. */
 function verify_csrf(): bool
 {
     $submitted = $_POST['csrf_token'] ?? '';
     $expected  = $_SESSION['csrf_token'] ?? '';
-    $valid     = $expected !== '' && hash_equals($expected, $submitted);
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    return $valid;
+    return $expected !== '' && hash_equals($expected, $submitted);
+}
+
+/**
+ * Markup for the Google reCAPTCHA v2 checkbox widget. Place INSIDE the <form>
+ * so the generated `g-recaptcha-response` field is submitted with the form.
+ * Rendered explicitly by app.js (see renderRecaptcha) so it also works after
+ * SPA navigation.
+ *
+ * @param string $theme 'light' or 'dark'.
+ */
+function recaptcha_widget(string $theme = 'light', string $extraClass = ''): string
+{
+    return '<div class="g-recaptcha ' . e($extraClass) . '" '
+         . 'data-sitekey="' . e(RECAPTCHA_SITE_KEY) . '" '
+         . 'data-theme="' . e($theme) . '"></div>';
+}
+
+/**
+ * Server-side verification of a Google reCAPTCHA token. Returns true only when
+ * Google confirms the challenge was solved by a human. Blocks bots / automated
+ * submissions before any email is sent.
+ * Docs: https://developers.google.com/recaptcha/docs/verify
+ */
+function verify_recaptcha(string $token): bool
+{
+    if ($token === '') {
+        return false;
+    }
+
+    $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'secret'   => RECAPTCHA_SECRET_KEY,
+            'response' => $token,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]),
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    $data = is_string($response) ? json_decode($response, true) : null;
+    return is_array($data) && !empty($data['success']);
 }
 
 /**
@@ -57,11 +119,39 @@ function get_image_url(string $filename): string
 }
 
 /**
+ * Build the shared tenant-authentication + tracing headers sent on every
+ * backend call. Centralised so api_post() and api_get() stay in lock-step.
+ *
+ * `X-CSRF-Token` carries the visitor's session-bound CSRF token so the
+ * request is tied end-to-end to an established browser session (defence in
+ * depth; the backend can enforce it once it tracks the token).
+ *
+ * @param bool $json When true, also advertise a JSON request body.
+ * @return string[]
+ */
+function api_headers(bool $json): array
+{
+    $headers = [
+        'Accept: application/json',
+        'X-API-Key: '       . API_KEY,
+        'X-CSRF-Token: '    . csrf_token(),
+        'Origin: '          . ORIGIN,
+        'User-Agent: '      . ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'),
+        'X-Forwarded-For: ' . ($_SERVER['REMOTE_ADDR'] ?? ''),
+    ];
+    if ($json) {
+        array_unshift($headers, 'Content-Type: application/json');
+    }
+    return $headers;
+}
+
+/**
  * POST a JSON payload to the backend API.
  *
  * Sends the tenant authentication headers required by the white-label
- * backend (X-Tenant-Key + Origin) and forwards the visitor's User-Agent
- * and IP so the API can log/rate-limit the real client.
+ * backend (X-API-Key + Origin), the visitor's session CSRF token, and
+ * forwards the visitor's User-Agent and IP so the API can log/rate-limit
+ * the real client.
  *
  * Returns ['ok' => bool, 'message' => string].
  */
@@ -72,14 +162,7 @@ function api_post(string $path, array $payload): array
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_HTTPHEADER     => [
-            'Content-Type: application/json',
-            'Accept: application/json',
-            'X-API-Key: '       . API_KEY,
-            'Origin: '          . ORIGIN,
-            'User-Agent: '      . ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'),
-            'X-Forwarded-For: ' . ($_SERVER['REMOTE_ADDR'] ?? ''),
-        ],
+        CURLOPT_HTTPHEADER     => api_headers(true),
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
@@ -114,13 +197,7 @@ function api_get(string $path, array $query = []): array
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => [
-            'Accept: application/json',
-            'X-API-Key: '       . API_KEY,
-            'Origin: '          . ORIGIN,
-            'User-Agent: '      . ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'),
-            'X-Forwarded-For: ' . ($_SERVER['REMOTE_ADDR'] ?? ''),
-        ],
+        CURLOPT_HTTPHEADER     => api_headers(false),
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
@@ -136,6 +213,41 @@ function api_get(string $path, array $query = []): array
         'status' => $code,
         'data'   => $data,
     ];
+}
+
+/**
+ * Render the email-code entry step (step 2 of the verified form flow).
+ * Posts back to the same page with form_step=verify + the captured email.
+ *
+ * @param bool $dark  Use light inputs suited to a dark/coloured background.
+ */
+function render_verification_step(string $email, string $error = '', bool $dark = false): void
+{
+    $muted    = $dark ? 'text-cream-50/85' : 'text-forest-700/80';
+    $strong   = $dark ? 'text-cream-50'    : 'text-forest-800';
+    $errCls   = $dark ? 'text-red-300'     : 'text-red-700';
+    $inputCls = $dark
+        ? 'w-full bg-cream-50 border-0 rounded-md px-5 py-3 text-center text-lg tracking-[0.5em] text-forest-800 focus:outline-none focus:ring-2 focus:ring-tan-500'
+        : 'w-full bg-[#f5f1e8] border border-forest-800/30 rounded-md px-5 py-3 text-center text-lg tracking-[0.5em] text-forest-800 focus:outline-none focus:border-tan-500';
+    ?>
+    <form class="space-y-4 max-w-md mx-auto" method="POST">
+        <?= csrf_field() ?>
+        <input type="hidden" name="form_step" value="verify">
+        <input type="hidden" name="email" value="<?= e($email) ?>">
+        <p class="<?= $muted ?> text-sm text-center">
+            We've emailed a 6-digit verification code to
+            <strong class="<?= $strong ?>"><?= e($email) ?></strong>.
+            Enter it below to confirm and send your enquiry.
+        </p>
+        <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]*" maxlength="6" required placeholder="••••••"
+               class="<?= $inputCls ?>">
+        <?php if ($error !== ''): ?><p class="<?= $errCls ?> text-sm text-center"><?= e($error) ?></p><?php endif; ?>
+        <div class="pt-2 text-center">
+            <button type="submit" class="btn-primary px-10">Confirm &amp; Send</button>
+        </div>
+    </form>
+    <?php
 }
 
 /**
@@ -159,14 +271,18 @@ function render_quote_form(array $o): void
     $submit  = $o['submitLabel'] ?? 'Send Inquiry';
     $bgImage = $o['bgImage'] ?? '';
     $status  = $o['status'] ?? null;
-    $success = $status && $status['ok'];
-    $error   = $status && !$status['ok'] ? $status['message'] : '';
+    $step    = $status['step'] ?? 'form';
+    $ok      = $status['ok']   ?? false;
+    $success = ($step === 'done');
+    $isVerify = ($step === 'verify');
+    $verifyEmail = $status['email'] ?? '';
+    $error   = ($status && !$ok) ? ($status['message'] ?? '') : '';
 
     $mailIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="1"></rect><path d="M3 7l9 6 9-6"></path></svg>';
 
     if ($variant === 'bgImage') {
         ?>
-        <section id="<?= e($id) ?>" class="relative py-20 sm:py-28"
+        <section id="<?= e($id) ?>" data-ajax-form-region class="relative py-20 sm:py-28"
                  style="background-image:url('<?= e($bgImage) ?>');background-size:cover;background-position:center;">
             <div class="absolute inset-0 bg-black/55" aria-hidden="true"></div>
             <div class="relative z-10 container-x max-w-5xl mx-auto">
@@ -181,6 +297,8 @@ function render_quote_form(array $o): void
                     <div class="max-w-2xl mx-auto">
                         <p class="text-center text-white font-medium py-6 text-lg">Thank you! We'll be in touch soon.</p>
                     </div>
+                <?php elseif ($isVerify): ?>
+                    <?php render_verification_step($verifyEmail, $error, true); ?>
                 <?php else: ?>
                     <form class="space-y-4 max-w-2xl mx-auto" method="POST">
                         <?= csrf_field() ?>
@@ -197,6 +315,7 @@ function render_quote_form(array $o): void
                                 <a href="/terms-conditions" class="spa-link underline underline-offset-2 hover:text-cream-100">Terms and Conditions</a>.
                             </span>
                         </label>
+                        <?= recaptcha_widget('dark') ?>
                         <?php if ($error !== ''): ?><p class="text-red-300 text-sm"><?= e($error) ?></p><?php endif; ?>
                         <div class="pt-4 text-center">
                             <button type="submit" class="btn-primary px-14 py-3 text-sm"><?= e($submit) ?></button>
@@ -211,13 +330,17 @@ function render_quote_form(array $o): void
 
     // compact variant
     ?>
-    <section id="<?= e($id) ?>" class="section bg-[#d7c8a5] pt-6 sm:pt-8 pb-12 sm:pb-16">
+    <section id="<?= e($id) ?>" data-ajax-form-region class="section bg-[#d7c8a5] pt-6 sm:pt-8 pb-12 sm:pb-16">
         <div class="container-x max-w-4xl mx-auto text-center">
             <?php if ($eyebrow !== ''): ?><p class="eyebrow mb-4 text-cream-50/80"><?= e($eyebrow) ?></p><?php endif; ?>
             <h2 class="heading-xl text-cream-50"><?= e($title) ?></h2>
             <p class="mt-6 text-cream-50/90 max-w-2xl mx-auto text-body"><?= e($subtitle) ?></p>
             <?php if ($success): ?>
                 <p class="mt-16 text-cream-50 font-medium text-lg">Thank you! We'll be in touch soon.</p>
+            <?php elseif ($isVerify): ?>
+                <div class="mt-16 text-left max-w-xl mx-auto">
+                    <?php render_verification_step($verifyEmail, $error, true); ?>
+                </div>
             <?php else: ?>
                 <form class="mt-16 space-y-4 text-left max-w-xl mx-auto" method="POST">
                     <?= csrf_field() ?>
@@ -238,6 +361,7 @@ function render_quote_form(array $o): void
                         <input type="checkbox" name="agree" required class="mt-0.5 w-4 h-4 accent-tan-500">
                         <span class="text-cream-50/90 text-xs sm:text-sm">By requesting a quote, you agree to our Terms and Conditions.</span>
                     </label>
+                    <div class="flex justify-center"><?= recaptcha_widget('light') ?></div>
                     <?php if ($error !== ''): ?><p class="text-red-700 text-sm text-center"><?= e($error) ?></p><?php endif; ?>
                     <div class="pt-3 text-center">
                         <button type="submit" class="btn-primary px-10"><?= e($submit) ?></button>
@@ -250,6 +374,114 @@ function render_quote_form(array $o): void
 }
 
 /**
+ * Shared two-step, email-verified form processor.
+ *
+ * The verification code lives entirely in THIS PHP session - no backend
+ * table is involved. The backend only emails the code and (after we verify
+ * it) stores the lead.
+ *
+ * Step 1 ('request'): validate fields, verify the Google reCAPTCHA token
+ *   server-side, generate a 6-digit code, stash its hash + the form payload in
+ *   $_SESSION, then ask the backend to email the code. Nothing is stored yet.
+ * Step 2 ('verify'): compare the entered code against the session (expiry +
+ *   attempt limited). On success, post the stored payload to the backend to
+ *   create the lead, then clear the session.
+ *
+ * Returns a status array:
+ *   ['ok' => bool, 'step' => 'form'|'verify'|'done', 'message' => string,
+ *    'email' => string]
+ *   - step 'form'   → re-render the data-entry form (with $message as error)
+ *   - step 'verify' → render the code-entry form for $email
+ *   - step 'done'   → submission complete; show the success message
+ */
+function process_form_submit(string $source, bool $requireAgree = false): array
+{
+    if (!verify_csrf()) {
+        return ['ok' => false, 'step' => 'form', 'message' => 'Invalid request. Please try again.', 'email' => ''];
+    }
+
+    // ── Step 2: confirm the emailed code against the PHP session ──
+    if (($_POST['form_step'] ?? '') === 'verify') {
+        $email = trim($_POST['email'] ?? '');
+        $code  = preg_replace('/\D/', '', $_POST['code'] ?? '');
+        $v     = $_SESSION['form_verify'] ?? null;
+
+        if (!is_array($v) || $email === '' || ($v['email'] ?? '') !== $email) {
+            unset($_SESSION['form_verify']);
+            return ['ok' => false, 'step' => 'form', 'message' => 'Your session expired. Please start again.', 'email' => ''];
+        }
+        if (time() > ($v['expires'] ?? 0)) {
+            unset($_SESSION['form_verify']);
+            return ['ok' => false, 'step' => 'form', 'message' => 'This code has expired. Please start again.', 'email' => ''];
+        }
+        if (($v['attempts'] ?? 0) >= FORM_MAX_ATTEMPTS) {
+            unset($_SESSION['form_verify']);
+            return ['ok' => false, 'step' => 'form', 'message' => 'Too many attempts. Please start again.', 'email' => ''];
+        }
+        if (strlen($code) !== 6) {
+            return ['ok' => false, 'step' => 'verify', 'email' => $email, 'message' => 'Please enter the 6-digit code we emailed you.'];
+        }
+        if (!password_verify($code, $v['code_hash'] ?? '')) {
+            $_SESSION['form_verify']['attempts'] = ($v['attempts'] ?? 0) + 1;
+            return ['ok' => false, 'step' => 'verify', 'email' => $email, 'message' => 'Incorrect code. Please try again.'];
+        }
+
+        // Verified - create the lead from the session-stored payload (anti-tamper).
+        $res = api_post('/wl/forms/contact', $v['payload']);
+        unset($_SESSION['form_verify']);
+        if ($res['ok']) {
+            return ['ok' => true, 'step' => 'done', 'email' => $email, 'message' => $res['message']];
+        }
+        return ['ok' => false, 'step' => 'form', 'email' => $email, 'message' => $res['message']];
+    }
+
+    // ── Step 1: validate + email a verification code ─────────────
+    $name  = trim($_POST['name']  ?? '');
+    $email = trim($_POST['email'] ?? '');
+
+    if ($name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['ok' => false, 'step' => 'form', 'message' => 'Please enter a valid name and email address.', 'email' => $email];
+    }
+    if ($requireAgree && empty($_POST['agree'])) {
+        return ['ok' => false, 'step' => 'form', 'message' => 'Please accept the Terms and Conditions.', 'email' => $email];
+    }
+
+    // Google reCAPTCHA - block bots before any email is sent.
+    if (!verify_recaptcha($_POST['g-recaptcha-response'] ?? '')) {
+        return ['ok' => false, 'step' => 'form', 'message' => 'Please complete the reCAPTCHA and try again.', 'email' => $email];
+    }
+
+    // Generate the code; stash its hash + the form payload in the session.
+    $code    = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $payload = [
+        'name'    => $name,
+        'email'   => $email,
+        'message' => trim($_POST['message'] ?? ''),
+        'source'  => $source,
+    ];
+    $_SESSION['form_verify'] = [
+        'email'     => $email,
+        'code_hash' => password_hash($code, PASSWORD_DEFAULT),
+        'payload'   => $payload,
+        'attempts'  => 0,
+        'expires'   => time() + FORM_CODE_TTL,
+    ];
+
+    // Ask the backend to email the code (it holds the tenant SMTP config).
+    $res = api_post('/wl/forms/send-code', [
+        'email' => $email,
+        'name'  => $name,
+        'code'  => $code,
+    ]);
+
+    if ($res['ok']) {
+        return ['ok' => true, 'step' => 'verify', 'email' => $email, 'message' => $res['message']];
+    }
+    unset($_SESSION['form_verify']);
+    return ['ok' => false, 'step' => 'form', 'email' => $email, 'message' => $res['message']];
+}
+
+/**
  * Process a quote-form POST for the current page.
  * Returns the status array (or null when not a matching POST).
  */
@@ -258,15 +490,7 @@ function handle_quote_submit(string $source): ?array
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         return null;
     }
-    if (!verify_csrf()) {
-        return ['ok' => false, 'message' => 'Invalid request. Please try again.'];
-    }
-    return api_post('/wl/forms/contact', [
-        'name'            => $_POST['name'] ?? '',
-        'email'           => $_POST['email'] ?? '',
-        'agreed_to_terms' => isset($_POST['agree']),
-        'source'          => $source,
-    ]);
+    return process_form_submit($source, true);
 }
 
 /**
@@ -277,15 +501,7 @@ function handle_contact_submit(): ?array
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         return null;
     }
-    if (!verify_csrf()) {
-        return ['ok' => false, 'message' => 'Invalid request. Please try again.'];
-    }
-    return api_post('/wl/forms/contact', [
-        'name'    => $_POST['name'] ?? '',
-        'email'   => $_POST['email'] ?? '',
-        'message' => $_POST['message'] ?? '',
-        'source'  => 'contact-form',
-    ]);
+    return process_form_submit('contact-form', false);
 }
 
 /** Open a carousel. Arrows/dots are built by app.js based on the data flags. */

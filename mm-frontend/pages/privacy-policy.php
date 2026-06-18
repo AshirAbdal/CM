@@ -3,13 +3,13 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Privacy Policy — Majestic Marquees & Tents",
+    "title": "Privacy Policy - Majestic Marquees & Tents",
     "name": {
         "description": "How Majestic Marquees & Tents respects your privacy and handles the data you share with us.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Privacy Policy — Majestic Marquees & Tents",
+        "og:title": "Privacy Policy - Majestic Marquees & Tents",
         "og:description": "How Majestic Marquees & Tents respects your privacy and handles the data you share with us.",
         "og:type": "website"
     }

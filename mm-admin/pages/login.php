@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit('Invalid request.');
     }
     unset($_SESSION['csrf_token']);
-    // PUBLIC request — X-Tenant-Key + Origin (no JWT yet)
+    // PUBLIC request - X-Tenant-Key + Origin (no JWT yet)
     $ch = curl_init(API_BASE . '/wl/admin/login');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -62,7 +62,7 @@ $layout = 'auth';
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Admin Login — Majestic Marquees",
+    "title": "Admin Login - Majestic Marquees",
     "description": "Admin login for Majestic Marquees"
 }
 </script>

@@ -12,13 +12,13 @@ $faqs = [
 
 <script type="application/json" id="page-meta">
 {
-    "title": "FAQ — Majestic Marquees & Tents",
+    "title": "FAQ - Majestic Marquees & Tents",
     "name": {
         "description": "Answers to frequently asked questions about our marquee and stretch tent services, bookings and coverage areas.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "FAQ — Majestic Marquees & Tents",
+        "og:title": "FAQ - Majestic Marquees & Tents",
         "og:description": "Answers to frequently asked questions about our marquee and stretch tent services, bookings and coverage areas.",
         "og:type": "website"
     }

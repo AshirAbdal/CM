@@ -77,13 +77,13 @@ $faqs = [
 
 <script type="application/json" id="page-meta">
 {
-    "title": "Stretch / Nomadic / Bedouin Tents — Majestic Marquees & Tents",
+    "title": "Stretch / Nomadic / Bedouin Tents - Majestic Marquees & Tents",
     "name": {
         "description": "Contemporary, playful and sophisticated stretch tents with a 5-year fabric warranty, available in six colours.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Stretch / Nomadic / Bedouin Tents — Majestic Marquees & Tents",
+        "og:title": "Stretch / Nomadic / Bedouin Tents - Majestic Marquees & Tents",
         "og:description": "Contemporary, playful and sophisticated stretch tents with a 5-year fabric warranty, available in six colours.",
         "og:type": "website"
     }

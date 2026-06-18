@@ -32,12 +32,13 @@ if ($apiStatus === 401) {
 $leads = $res['data'] ?? [];
 $meta  = $res['meta'] ?? ['total' => 0];
 
-$totalDisplay  = (int) ($meta['total'] ?? count($leads));
-$enrichedCount = count(array_filter($leads, fn($l) => !empty($l['apollo'])));
-$withOrders    = count(array_filter($leads, fn($l) => (int) ($l['order_count'] ?? 0) > 0));
-$warmLeads     = count(array_filter($leads, fn($l) => !empty($l['is_warm_lead'])));
-$newLeads      = count(array_filter($leads, fn($l) => !empty($l['has_unread'])));
-$coldLeads     = count(array_filter($leads, fn($l) => !empty($l['is_cold_lead'])));
+// Tenant-wide stat counts come from the API (accurate across ALL customers).
+$stats = $meta['stats'] ?? [];
+$statTotal     = (int) ($stats['total_customers'] ?? ($meta['total'] ?? count($leads)));
+$statNew       = (int) ($stats['new']       ?? 0);
+$statQualified = (int) ($stats['qualified'] ?? 0);
+$statEnriched  = (int) ($stats['enriched']  ?? 0);
+$statVerified  = (int) ($stats['verified']  ?? 0);
 
 $jsApiBase = json_encode(API_BASE);
 $jsApiKey  = json_encode(API_KEY);
@@ -49,7 +50,7 @@ $activeNav = 'leads';
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Leads — Majestic Marquees Admin",
+    "title": "Leads - Majestic Marquees Admin",
     "description": "Lead submissions for Majestic Marquees"
 }
 </script>
@@ -78,124 +79,135 @@ const _jwt       = <?= $jsJwt ?>;
 
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <div class="bg-white rounded-xl border border-gray-200 p-5">
-            <p class="text-sm text-gray-500">Total Leads</p>
-            <p class="mt-1 text-3xl font-bold text-gray-800"><?= $totalDisplay ?></p>
-            <p class="text-xs text-gray-400 mt-1">all time</p>
-        </div>
-        <div class="bg-white rounded-xl border <?= $newLeads > 0 ? 'border-blue-300' : 'border-gray-200' ?> p-5">
-            <p class="text-sm <?= $newLeads > 0 ? 'text-blue-600 font-medium' : 'text-gray-500' ?>">New</p>
-            <p class="mt-1 text-3xl font-bold <?= $newLeads > 0 ? 'text-blue-600' : 'text-gray-800' ?>"><?= $newLeads ?></p>
+        <div class="bg-white rounded-xl border <?= $statNew > 0 ? 'border-blue-300' : 'border-gray-200' ?> p-5">
+            <p class="text-sm <?= $statNew > 0 ? 'text-blue-600 font-medium' : 'text-gray-500' ?>">New</p>
+            <p class="mt-1 text-3xl font-bold <?= $statNew > 0 ? 'text-blue-600' : 'text-gray-800' ?>"><?= $statNew ?></p>
             <p class="text-xs text-gray-400 mt-1">unread submissions</p>
         </div>
-        <div class="bg-white rounded-xl border border-orange-100 p-5">
-            <p class="text-sm text-orange-600 font-medium">&#9733; Warm Leads</p>
-            <p class="mt-1 text-3xl font-bold text-orange-600"><?= $warmLeads ?></p>
-            <p class="text-xs text-gray-400 mt-1">submitted via forms</p>
-        </div>
-        <div class="bg-white rounded-xl border border-cyan-100 p-5">
-            <p class="text-sm text-cyan-600 font-medium">&#10052; Cold Leads</p>
-            <p class="mt-1 text-3xl font-bold text-cyan-600"><?= $coldLeads ?></p>
-            <p class="text-xs text-gray-400 mt-1">replied to Apollo email</p>
-        </div>
         <div class="bg-white rounded-xl border border-gray-200 p-5">
-            <p class="text-sm text-gray-500">Apollo Enriched</p>
-            <p class="mt-1 text-3xl font-bold text-gray-800"><?= $enrichedCount ?></p>
+            <p class="text-sm text-gray-500">Total Customers</p>
+            <p class="mt-1 text-3xl font-bold text-gray-800"><?= $statTotal ?></p>
+            <p class="text-xs text-gray-400 mt-1">all time</p>
+        </div>
+        <div class="bg-white rounded-xl border border-purple-100 p-5">
+            <p class="text-sm text-purple-600 font-medium">&#9873; Qualified</p>
+            <p id="stat-qualified" class="mt-1 text-3xl font-bold text-purple-600"><?= $statQualified ?></p>
+            <p class="text-xs text-gray-400 mt-1">marked by admin</p>
+        </div>
+        <div class="bg-white rounded-xl border border-green-100 p-5">
+            <p class="text-sm text-green-600 font-medium">&#10003; Apollo Enriched</p>
+            <p class="mt-1 text-3xl font-bold text-green-600"><?= $statEnriched ?></p>
             <p class="text-xs text-gray-400 mt-1">professional data</p>
         </div>
-    </div>
-
-    <!-- Leads table -->
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Lead</th>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone / Country</th>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Apollo.io</th>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Activity</th>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <?php foreach ($leads as $row):
-                        $apollo = $row['apollo'] ?? null;
-                    ?>
-                    <tr class="hover:bg-blue-50/40 transition-colors align-top"
-                        onclick="window.location='/customer-info?CR_id=<?= (int)$row['CR_id'] ?>'" style="cursor:pointer">
-
-                        <!-- Name + email -->
-                        <td class="px-5 py-4">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="font-medium text-gray-800"><?= e($row['name'] ?? '—') ?></p>
-                                <?php if (!empty($row['has_unread'])): ?>
-                                <span class="text-xs font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
-                                    New
-                                </span>
-                                <?php endif; ?>
-                                <?php if (!empty($row['is_cold_lead'])): ?>
-                                <span class="text-xs font-semibold bg-cyan-50 text-cyan-600 border border-cyan-200 px-1.5 py-0.5 rounded-full">
-                                    &#10052; Cold Lead
-                                </span>
-                                <?php endif; ?>
-                                <?php if (!empty($row['is_warm_lead'])): ?>
-                                <span class="text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full">
-                                    &#9733; Warm Lead
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                            <p class="text-xs text-blue-600 mt-0.5"><?= e($row['email'] ?? '') ?></p>
-                        </td>
-
-                        <!-- Phone + country -->
-                        <td class="px-5 py-4 text-sm text-gray-600">
-                            <?php if (!empty($row['phone'])): ?>
-                            <p><?= e($row['phone']) ?></p>
-                            <?php endif; ?>
-                            <p class="text-xs text-gray-400 mt-0.5"><?= e($row['country'] ?? '') ?></p>
-                        </td>
-
-                        <!-- Apollo badge -->
-                        <td class="px-5 py-4">
-                            <?php if ($apollo): ?>
-                            <span class="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-full">
-                                &#10003;&nbsp;Enriched
-                            </span>
-                            <?php if (!empty($apollo['title'])): ?>
-                            <p class="text-xs text-gray-600 mt-1"><?= e($apollo['title']) ?></p>
-                            <?php endif; ?>
-                            <?php if (!empty($apollo['current_company'])): ?>
-                            <p class="text-xs text-gray-400"><?= e($apollo['current_company']) ?></p>
-                            <?php endif; ?>
-                            <?php else: ?>
-                            <span class="inline-flex items-center gap-1 text-xs font-medium bg-gray-100 text-gray-400 border border-gray-200 px-2 py-1 rounded-full">
-                                &#8857;&nbsp;Pending
-                            </span>
-                            <?php endif; ?>
-                        </td>
-
-                        <!-- Activity counts -->
-                        <td class="px-5 py-4 text-xs text-gray-500">
-                            <p><?= (int)($row['order_count'] ?? 0) ?> order<?= (int)($row['order_count'] ?? 0) !== 1 ? 's' : '' ?></p>
-                            <p class="mt-0.5"><?= (int)($row['appointment_count'] ?? 0) ?> appt<?= (int)($row['appointment_count'] ?? 0) !== 1 ? 's' : '' ?></p>
-                        </td>
-
-                        <!-- Date -->
-                        <td class="px-5 py-4 text-xs text-gray-400 whitespace-nowrap">
-                            <?= e(substr($row['created_at'] ?? '', 0, 10)) ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($displayLeads)): ?>
-                    <tr>
-                        <td colspan="5" class="px-5 py-10 text-center text-gray-400">No leads yet.</td>
-                    </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+        <div class="bg-white rounded-xl border border-teal-100 p-5">
+            <p class="text-sm text-teal-600 font-medium">&#9745; Verified</p>
+            <p id="stat-verified" class="mt-1 text-3xl font-bold text-teal-600"><?= $statVerified ?></p>
+            <p class="text-xs text-gray-400 mt-1">marked by admin</p>
         </div>
     </div>
+
+    <!-- Customer cards -->
+    <?php if (empty($leads)): ?>
+    <div class="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-400">
+        No leads yet.
+    </div>
+    <?php else: ?>
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+        <?php foreach ($leads as $row):
+            $apollo = $row['apollo'] ?? null;
+
+            // Apollo company (summary already extracts current_company)
+            $company  = $apollo['current_company'] ?? null;
+            $title    = $apollo['title'] ?? null;
+            $location = trim(implode(', ', array_filter([$apollo['city'] ?? null, $apollo['state'] ?? null]))) ?: null;
+        ?>
+        <div onclick="window.location='/customer-info?CR_id=<?= (int)$row['CR_id'] ?>'"
+             class="group bg-white rounded-xl border border-gray-200 p-5 flex flex-col
+                    hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+
+            <!-- Header: avatar + identity -->
+            <div class="flex items-start gap-3">
+                <?php if ($apollo && !empty($apollo['photo_url'])): ?>
+                <img src="<?= e($apollo['photo_url']) ?>" alt=""
+                     class="w-12 h-12 rounded-full object-cover border border-gray-200 shrink-0">
+                <?php else: ?>
+                <div class="w-12 h-12 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+                    <span class="text-lg text-gray-400 font-semibold"><?= e(strtoupper(substr($row['name'] ?? '?', 0, 1))) ?></span>
+                </div>
+                <?php endif; ?>
+
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <p class="font-semibold text-gray-800 truncate"><?= e($row['name'] ?? '-') ?></p>
+                        <?php if (!empty($row['has_unread'])): ?>
+                        <span class="text-[10px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">New</span>
+                        <?php endif; ?>
+                        <?php if (!empty($row['is_cold_lead'])): ?>
+                        <span class="text-[10px] font-semibold bg-cyan-50 text-cyan-600 border border-cyan-200 px-1.5 py-0.5 rounded-full">&#10052; Cold</span>
+                        <?php endif; ?>
+                        <?php if (!empty($row['is_warm_lead'])): ?>
+                        <span class="text-[10px] font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full">&#9733; Warm</span>
+                        <?php endif; ?>
+                    </div>
+                    <p class="text-xs text-blue-600 truncate mt-0.5"><?= e($row['email'] ?? '') ?></p>
+                    <?php if (!empty($row['phone'])): ?>
+                    <p class="text-xs text-gray-400 mt-0.5"><?= e($row['phone']) ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($apollo): ?>
+                <span class="text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full shrink-0">&#10003; Apollo</span>
+                <?php endif; ?>
+            </div>
+
+            <!-- Apollo key details -->
+            <?php if ($title || $company || $location || ($apollo['seniority'] ?? null)): ?>
+            <div class="mt-3 space-y-1">
+                <?php if ($title || $company): ?>
+                <p class="text-xs text-gray-600 truncate">
+                    <?php if ($title): ?><span class="font-medium text-gray-700"><?= e($title) ?></span><?php endif; ?>
+                    <?php if ($title && $company): ?> · <?php endif; ?>
+                    <?php if ($company): ?><?= e($company) ?><?php endif; ?>
+                </p>
+                <?php endif; ?>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <?php if (!empty($apollo['seniority'])): ?>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600"><?= e($apollo['seniority']) ?></span>
+                    <?php endif; ?>
+                    <?php if ($location): ?>
+                    <span class="text-[11px] text-gray-400">&#128205; <?= e($location) ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Status labels (driven by the survey flow; managed on the detail page) -->
+            <?php $surveyStatus = $row['survey_status'] ?? null; ?>
+            <div class="flex items-center gap-2 flex-wrap mt-3">
+                <?php if (!empty($row['is_verified'])): ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-200">&#9745; Verified</span>
+                <?php else: ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 text-gray-400 border border-gray-200">&#9744; Unverified</span>
+                <?php endif; ?>
+
+                <?php if (!empty($row['is_qualified'])): ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200">&#9873; Qualified</span>
+                <?php else: ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 text-gray-400 border border-gray-200">&#9872; Not qualified</span>
+                <?php endif; ?>
+
+                <?php if ($surveyStatus === 'completed'): ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200">&#9993; Survey completed</span>
+                <?php elseif ($surveyStatus === 'pending'): ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-200">&#9993; Survey sent</span>
+                <?php else: ?>
+                <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 text-gray-400 border border-gray-200">&#9993; No survey</span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- slide-over removed -->
@@ -224,7 +236,7 @@ const _jwt       = <?= $jsJwt ?>;
     <!-- Panel body -->
     <div id="panel-content" class="flex-1 overflow-y-auto px-6 py-6 space-y-6 hidden">
 
-        <!-- ── Form data — matches screenshot layout ────────────── -->
+        <!-- ── Form data - matches screenshot layout ────────────── -->
         <div class="space-y-4">
             <!-- Name + email line (exactly as in the screenshot) -->
             <p class="text-sm text-gray-700">
@@ -235,24 +247,24 @@ const _jwt       = <?= $jsJwt ?>;
             <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Phone</p>
-                    <p id="pd-phone" class="text-gray-700 mt-1">—</p>
+                    <p id="pd-phone" class="text-gray-700 mt-1">-</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Country</p>
-                    <p id="pd-country" class="text-gray-700 mt-1">—</p>
+                    <p id="pd-country" class="text-gray-700 mt-1">-</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Business Name</p>
-                    <p id="pd-biz" class="text-gray-700 mt-1">—</p>
+                    <p id="pd-biz" class="text-gray-700 mt-1">-</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Website</p>
-                    <p id="pd-website" class="text-gray-700 mt-1">—</p>
+                    <p id="pd-website" class="text-gray-700 mt-1">-</p>
                 </div>
             </div>
         </div>
 
-        <!-- ── Apollo.io data box — matches the bordered box in the screenshot ── -->
+        <!-- ── Apollo.io data box - matches the bordered box in the screenshot ── -->
         <div id="apollo-box"
              class="border border-gray-200 rounded-lg p-5 min-h-[120px]">
             <!-- populated by renderPanel() -->
@@ -270,7 +282,7 @@ const _jwt       = <?= $jsJwt ?>;
             </div>
         </div>
 
-        <!-- ── Recent activity (notifications — from full detail only) ── -->
+        <!-- ── Recent activity (notifications - from full detail only) ── -->
         <div id="notif-section" class="hidden">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Recent Activity</p>
             <ul id="notif-list" class="space-y-2 text-sm"></ul>
@@ -334,18 +346,18 @@ function openLead(event, row) {
 
 function renderFormFields(data) {
     document.getElementById('panel-heading').textContent = data.name || 'Lead Detail';
-    document.getElementById('pd-name').textContent       = data.name    || '—';
-    document.getElementById('pd-email').textContent      = data.email   || '—';
-    document.getElementById('pd-phone').textContent      = data.phone   || '—';
-    document.getElementById('pd-country').textContent    = data.country || '—';
-    document.getElementById('pd-biz').textContent        = data.legal_business_name || '—';
+    document.getElementById('pd-name').textContent       = data.name    || '-';
+    document.getElementById('pd-email').textContent      = data.email   || '-';
+    document.getElementById('pd-phone').textContent      = data.phone   || '-';
+    document.getElementById('pd-country').textContent    = data.country || '-';
+    document.getElementById('pd-biz').textContent        = data.legal_business_name || '-';
 
     const wEl = document.getElementById('pd-website');
     if (data.website_url) {
         wEl.innerHTML = `<a href="${_esc(data.website_url)}" target="_blank" rel="noopener noreferrer"
             class="text-blue-600 hover:underline text-xs">${_esc(data.website_url)}</a>`;
     } else {
-        wEl.textContent = '—';
+        wEl.textContent = '-';
     }
 
     document.getElementById('pd-orders').textContent = data.order_count       ?? 0;
@@ -548,7 +560,7 @@ function syncColdLeads() {
     .then(r => r.json())
     .then(json => {
         if (json.success) {
-            alert('Sync complete — ' + json.synced + ' cold lead(s) synced from Apollo.io. Refreshing...');
+            alert('Sync complete - ' + json.synced + ' cold lead(s) synced from Apollo.io. Refreshing...');
             location.reload();
         } else {
             alert('Sync failed: ' + (json.error || 'Unknown error'));

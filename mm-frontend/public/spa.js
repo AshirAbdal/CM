@@ -99,7 +99,7 @@
                 scrollToHash(hash);
             })
             .catch(function () {
-                // Network error — fall back to full page load
+                // Network error - fall back to full page load
                 window.location.href = url;
             });
     }

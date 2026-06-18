@@ -75,14 +75,14 @@ $faqs = [
 
 <script type="application/json" id="page-meta">
 {
-    "title": "Sailcloth / Silhouette Tents — Majestic Marquees & Tents",
+    "title": "Sailcloth / Silhouette Tents - Majestic Marquees & Tents",
     "name": {
-        "description": "Genuine sailcloth tents in widths from 6 m to 20 m — elegance, style and sophistication for memorable outdoor events.",
+        "description": "Genuine sailcloth tents in widths from 6 m to 20 m - elegance, style and sophistication for memorable outdoor events.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Sailcloth / Silhouette Tents — Majestic Marquees & Tents",
-        "og:description": "Genuine sailcloth tents in widths from 6 m to 20 m — elegance, style and sophistication for memorable outdoor events.",
+        "og:title": "Sailcloth / Silhouette Tents - Majestic Marquees & Tents",
+        "og:description": "Genuine sailcloth tents in widths from 6 m to 20 m - elegance, style and sophistication for memorable outdoor events.",
         "og:type": "website"
     }
 }

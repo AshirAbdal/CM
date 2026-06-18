@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Page Not Found — Majestic Marquees & Tents",
+    "title": "Page Not Found - Majestic Marquees & Tents",
     "name": {
         "description": "The page you're looking for doesn't exist.",
         "robots": "noindex, nofollow"

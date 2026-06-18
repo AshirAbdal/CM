@@ -3,13 +3,13 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Custom & Bespoke Tents — Majestic Marquees & Tents",
+    "title": "Custom & Bespoke Tents - Majestic Marquees & Tents",
     "name": {
         "description": "Made-to-measure 3D engineered canopies and bespoke tents designed exactly to your location's measurements.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Custom & Bespoke Tents — Majestic Marquees & Tents",
+        "og:title": "Custom & Bespoke Tents - Majestic Marquees & Tents",
         "og:description": "Made-to-measure 3D engineered canopies and bespoke tents designed exactly to your location's measurements.",
         "og:type": "website"
     }

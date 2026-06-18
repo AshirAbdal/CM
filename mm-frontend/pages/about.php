@@ -1,14 +1,14 @@
 <?php if (!defined('APP_ENTRY')) { http_response_code(404); exit; } ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "About Us — Majestic Marquees & Tents",
+    "title": "About Us - Majestic Marquees & Tents",
     "name": {
-        "description": "Discover the story behind Majestic Marquees & Tents — superior tents and exceptional service across SE-Asia and Oceania.",
+        "description": "Discover the story behind Majestic Marquees & Tents - superior tents and exceptional service across SE-Asia and Oceania.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "About Us — Majestic Marquees & Tents",
-        "og:description": "Discover the story behind Majestic Marquees & Tents — superior tents and exceptional service across SE-Asia and Oceania.",
+        "og:title": "About Us - Majestic Marquees & Tents",
+        "og:description": "Discover the story behind Majestic Marquees & Tents - superior tents and exceptional service across SE-Asia and Oceania.",
         "og:type": "website"
     }
 }

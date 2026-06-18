@@ -7,7 +7,7 @@ if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
-// Fetch notifications feed (latest 20, all — not unread only)
+// Fetch notifications feed (latest 20, all - not unread only)
 $ch = curl_init(API_BASE . '/wl/admin/notifications?limit=20');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
@@ -58,7 +58,7 @@ $activeNav = 'dashboard';
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Dashboard — Majestic Marquees Admin",
+    "title": "Dashboard - Majestic Marquees Admin",
     "description": "Admin dashboard for Majestic Marquees"
 }
 </script>
@@ -123,7 +123,7 @@ const _jwt       = <?= $jsJwt ?>;
 
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <!-- Customer name — links to their detail page -->
+                            <!-- Customer name - links to their detail page -->
                             <a href="/customer-info?CR_id=<?= (int)$n['CR_id'] ?>"
                                class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors">
                                 <?= e($n['name'] ?? $n['email']) ?>

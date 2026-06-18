@@ -61,7 +61,7 @@ $activeNav = 'leads';
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "<?= e($lead['name'] ?? 'Lead') ?> — Majestic Marquees Admin",
+    "title": "<?= e($lead['name'] ?? 'Lead') ?> - Majestic Marquees Admin",
     "description": "Lead detail for <?= e($lead['email'] ?? '') ?>"
 }
 </script>
@@ -88,7 +88,7 @@ $activeNav = 'leads';
             </div>
             <?php endif; ?>
             <div>
-                <h2 class="text-xl font-semibold text-gray-800"><?= e($lead['name'] ?? '—') ?></h2>
+                <h2 class="text-xl font-semibold text-gray-800"><?= e($lead['name'] ?? '-') ?></h2>
                 <p class="text-sm text-blue-600 mt-0.5"><?= e($lead['email'] ?? '') ?></p>
                 <?php if ($apollo && !empty($apollo['headline'])): ?>
                 <p class="text-xs text-gray-400 mt-1"><?= e($apollo['headline']) ?></p>
@@ -109,40 +109,61 @@ $activeNav = 'leads';
         <?php endif; ?>
     </div>
 
-    <!-- ── Two-column layout ─────────────────────────────────── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- ── Lead qualification (customer-level summary) ───────── -->
+    <?php
+    // Customer-level flags are DERIVED (MAX across this customer's submissions):
+    // once any enquiry is verified/qualified, the customer stays so — a new
+    // form submission never downgrades it. Per-enquiry state lives in each
+    // lead row below.
+    $isVerified  = !empty($lead['is_verified']);
+    $isQualified = !empty($lead['is_qualified']);
+    $subs        = $lead['notifications'] ?? [];
+    $pendingCnt  = 0;
+    $completedCnt = 0;
+    foreach ($subs as $s) {
+        $st = $s['survey']['status'] ?? null;
+        if ($st === 'completed') $completedCnt++;
+        elseif ($st === 'pending') $pendingCnt++;
+    }
+    ?>
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Lead Qualification</p>
 
-        <!-- LEFT: Form data -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Form Data</p>
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-sm font-medium px-3 py-1.5 rounded-lg border
+                         <?= $isVerified ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-gray-50 text-gray-400 border-gray-200' ?>">
+                <?= $isVerified ? '&#9745;' : '&#9744;' ?> Verified
+            </span>
+            <span class="text-sm font-medium px-3 py-1.5 rounded-lg border
+                         <?= $isQualified ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200' ?>">
+                <?= $isQualified ? '&#9873;' : '&#9872;' ?> Qualified
+            </span>
 
-            <?php
-            $fields = [
-                'Email'         => $lead['email']                ?? null,
-                'Phone'         => $lead['phone']                ?? null,
-                'Country'       => $lead['country']              ?? null,
-                'Business Name' => $lead['legal_business_name']  ?? null,
-                'Website'       => $lead['website_url']          ?? null,
-                'Added'         => $lead['created_at']           ?? null,
-            ];
-            foreach ($fields as $label => $value):
-                if ($value === null || $value === '') continue;
-            ?>
-            <div class="flex items-start gap-4">
-                <span class="text-xs text-gray-400 w-28 shrink-0 pt-0.5 uppercase tracking-wide font-medium"><?= e($label) ?></span>
-                <?php if ($label === 'Website'): ?>
-                <a href="<?= e($value) ?>" target="_blank" rel="noopener noreferrer"
-                   class="text-sm text-blue-600 hover:underline break-all"><?= e($value) ?></a>
-                <?php else: ?>
-                <span class="text-sm text-gray-700 break-all"><?= e($value) ?></span>
-                <?php endif; ?>
-            </div>
-            <?php endforeach; ?>
+            <?php if ($completedCnt > 0): ?>
+            <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200"><?= (int)$completedCnt ?> survey<?= $completedCnt > 1 ? 's' : '' ?> completed</span>
+            <?php endif; ?>
+            <?php if ($pendingCnt > 0): ?>
+            <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-200"><?= (int)$pendingCnt ?> awaiting reply</span>
+            <?php endif; ?>
+            <?php if ($completedCnt === 0 && $pendingCnt === 0): ?>
+            <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 text-gray-400 border border-gray-200">No survey sent</span>
+            <?php endif; ?>
         </div>
 
-        <!-- RIGHT: Apollo.io data -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-5">Apollo.io Data</p>
+        <p class="text-xs text-gray-400 mt-3">
+            Status is kept across all enquiries — verifying or qualifying any single enquiry below marks this customer for good. A new form submission never resets it.
+        </p>
+    </div>
+
+    <!-- ── Apollo.io data (collapsible) ──────────────────────── -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <button type="button"
+                onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.apollo-chev').classList.toggle('rotate-180');"
+                class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Apollo.io Data</span>
+            <svg class="apollo-chev w-4 h-4 text-gray-300 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="hidden border-t border-gray-100 p-6">
 
             <?php if ($apollo): ?>
 
@@ -298,7 +319,6 @@ $activeNav = 'leads';
             </p>
             <?php endif; ?>
         </div>
-
     </div>
 
     <!-- ── Activity stats row ────────────────────────────────── -->
@@ -321,25 +341,228 @@ $activeNav = 'leads';
         </div>
     </div>
 
-    <!-- ── Recent Activity (notifications) ───────────────────── -->
+    <!-- ── All Leads (submissions) ───────────────────────────── -->
     <?php if (!empty($lead['notifications'])): ?>
+    <?php
+    // Lead-qualification pipeline stages (from the CRM pipeline reference).
+    // Dummy progress for now — real per-lead stage wiring is configured later.
+    $qualStages  = ['New', 'Awaiting Information', 'Qualified', '1st offer', '2nd offer', 'Long Term', 'Won'];
+    $qualCurrent = 0; // index of the current stage (placeholder)
+    ?>
     <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Recent Activity</p>
-        <ul class="space-y-3">
-            <?php foreach ($lead['notifications'] as $n): ?>
-            <li class="flex items-start gap-3">
-                <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 <?= $n['is_read'] ? 'bg-gray-200' : 'bg-blue-500' ?>"></span>
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <p class="text-sm text-gray-700"><?= e($n['message']) ?></p>
-                        <span class="text-xs bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded font-mono"><?= e($n['type']) ?></span>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">All Leads</p>
+        <div class="space-y-3">
+            <?php foreach ($lead['notifications'] as $n):
+                $nVerified  = !empty($n['is_verified']);
+                $nQualified = !empty($n['is_qualified']);
+                $nSurvey    = $n['survey'] ?? null;
+                $nState     = $nSurvey['status'] ?? null;
+                $sid        = (int) $n['submission_id'];
+            ?>
+            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                <button type="button"
+                        onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.lead-chev').classList.toggle('rotate-180');"
+                        class="w-full flex items-start gap-3 text-left px-4 py-3 hover:bg-gray-50 transition">
+                    <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 <?= $n['is_read'] ? 'bg-gray-200' : 'bg-blue-500' ?>"></span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="text-sm text-gray-700"><?= e($n['message']) ?></p>
+                            <span class="text-xs bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded font-mono"><?= e($n['type']) ?></span>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap mt-1">
+                            <p class="text-xs text-gray-400"><?= e(substr($n['created_at'] ?? '', 0, 16)) ?></p>
+                            <?php if ($nVerified): ?>
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">&#9745; Verified</span>
+                            <?php endif; ?>
+                            <?php if ($nQualified): ?>
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">&#9873; Qualified</span>
+                            <?php endif; ?>
+                            <?php if ($nState === 'completed'): ?>
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200">Survey done</span>
+                            <?php elseif ($nState === 'pending'): ?>
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">Awaiting reply</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <p class="text-xs text-gray-400 mt-0.5"><?= e(substr($n['created_at'] ?? '', 0, 16)) ?></p>
+                    <svg class="lead-chev w-4 h-4 text-gray-300 shrink-0 transition-transform mt-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+
+                <!-- Lead detail view (expandable) -->
+                <div class="hidden border-t border-gray-100 px-4 py-5 bg-gray-50/60">
+
+                    <!-- Per-enquiry verification controls -->
+                    <div class="flex items-center gap-3 flex-wrap mb-5">
+                        <button type="button"
+                                onclick="toggleFlag(this, <?= $sid ?>, 'verified')"
+                                data-on="<?= $nVerified ? '1' : '0' ?>"
+                                class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors
+                                       <?= $nVerified ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-white text-gray-500 border-gray-200 hover:border-teal-200' ?>">
+                            <span class="flag-icon"><?= $nVerified ? '&#9745;' : '&#9744;' ?></span> Verified
+                        </button>
+                        <button type="button"
+                                onclick="toggleFlag(this, <?= $sid ?>, 'qualified')"
+                                data-on="<?= $nQualified ? '1' : '0' ?>"
+                                class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors
+                                       <?= $nQualified ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-200' ?>">
+                            <span class="flag-icon"><?= $nQualified ? '&#9873;' : '&#9872;' ?></span> Qualified
+                        </button>
+                        <button type="button"
+                                onclick="resendSurvey(this, <?= $sid ?>)"
+                                class="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700 transition-colors">
+                            &#9993; <span class="rs-label"><?= $nState ? 'Resend survey' : 'Send survey' ?></span>
+                        </button>
+                    </div>
+
+                    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-4">Lead Qualification</p>
+                    <div class="overflow-x-auto pb-1">
+                        <div class="flex items-start min-w-max">
+                            <?php foreach ($qualStages as $si => $stageName):
+                                $done      = $si <  $qualCurrent;
+                                $isCurrent = $si === $qualCurrent;
+                            ?>
+                            <div class="flex items-start">
+                                <div class="flex flex-col items-center w-20">
+                                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border-2
+                                                <?= $isCurrent ? 'bg-blue-500 border-blue-500 text-white' : ($done ? 'bg-blue-100 border-blue-300 text-blue-600' : 'bg-white border-gray-200 text-gray-300') ?>">
+                                        <?= $done ? '&#10003;' : ($si + 1) ?>
+                                    </div>
+                                    <span class="mt-1.5 text-[10px] text-center leading-tight <?= $isCurrent ? 'text-blue-600 font-semibold' : ($done ? 'text-blue-500' : 'text-gray-400') ?>"><?= e($stageName) ?></span>
+                                </div>
+                                <?php if ($si < count($qualStages) - 1): ?>
+                                <div class="w-8 h-0.5 mt-3.5 <?= $done ? 'bg-blue-300' : 'bg-gray-200' ?>"></div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <!-- Survey Responses (this enquiry only) -->
+                    <div class="mt-5 pt-4 border-t border-gray-200">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Survey Responses</p>
+                        <?php if ($nSurvey && !empty($nSurvey['answers'])):
+                            $answers   = $nSurvey['answers'];
+                            $questions = $nSurvey['questions'] ?? null;
+                            $rows = [];
+                            if (is_array($questions)) {
+                                foreach ($questions as $q) {
+                                    $val = $answers[$q['key']] ?? '';
+                                    if ($val === '' || $val === null) continue;
+                                    $rows[] = [$q['label'], is_array($val) ? implode(', ', $val) : $val];
+                                }
+                            } else {
+                                foreach ($answers as $k => $val) {
+                                    if ($val === '' || $val === null) continue;
+                                    $rows[] = [$k, is_array($val) ? implode(', ', $val) : $val];
+                                }
+                            }
+                        ?>
+                            <?php if (!empty($rows)): ?>
+                            <div class="space-y-3">
+                                <?php foreach ($rows as [$qLabel, $qVal]): ?>
+                                <div class="flex items-start gap-4">
+                                    <span class="text-xs text-gray-400 w-40 shrink-0 pt-0.5"><?= e($qLabel) ?></span>
+                                    <span class="text-sm text-gray-700"><?= e($qVal) ?></span>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php else: ?>
+                            <p class="text-sm text-gray-400">No responses yet.</p>
+                            <?php endif; ?>
+                        <?php elseif ($nState === 'pending'): ?>
+                            <p class="text-sm text-gray-400">Survey sent &middot; awaiting reply.</p>
+                        <?php else: ?>
+                            <p class="text-sm text-gray-400">No survey submitted for this enquiry.</p>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </li>
+            </div>
             <?php endforeach; ?>
-        </ul>
+        </div>
     </div>
     <?php endif; ?>
 
 </div>
+
+<script>
+(function () {
+    const API_BASE = '<?= API_BASE ?>';
+    const API_KEY  = '<?= API_KEY ?>';
+    const JWT      = '<?= e($_SESSION['jwt'] ?? '') ?>';
+
+    function headers() {
+        return {
+            'Content-Type':  'application/json',
+            'X-API-Key':     API_KEY,
+            'Authorization': 'Bearer ' + JWT,
+        };
+    }
+
+    // Manual override of the per-enquiry verified / qualified flags
+    window.toggleFlag = function (btn, submissionId, field) {
+        const next = btn.dataset.on === '1' ? 0 : 1;
+        btn.disabled = true;
+        btn.classList.add('opacity-60');
+
+        fetch(API_BASE + '/wl/admin/customer/flag', {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({ submission_id: submissionId, field: field, value: next })
+        })
+        .then(r => r.json())
+        .then(json => {
+            if (!json.success) throw new Error(json.error || 'Update failed');
+            applyFlagState(btn, field, next);
+        })
+        .catch(err => alert('Could not update ' + field + ': ' + err.message))
+        .finally(() => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-60');
+        });
+    };
+
+    function applyFlagState(btn, field, on) {
+        btn.dataset.on = on ? '1' : '0';
+        const icon = btn.querySelector('.flag-icon');
+        const onColor  = field === 'qualified'
+            ? 'bg-purple-50 text-purple-700 border-purple-200'
+            : 'bg-teal-50 text-teal-700 border-teal-200';
+        const offHover = field === 'qualified' ? 'hover:border-purple-200' : 'hover:border-teal-200';
+        const offColor = 'bg-white text-gray-500 border-gray-200 ' + offHover;
+        btn.className = 'text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors '
+            + (on ? onColor : offColor);
+        if (icon) {
+            if (field === 'qualified') icon.innerHTML = on ? '&#9873;' : '&#9872;';
+            else                       icon.innerHTML = on ? '&#9745;' : '&#9744;';
+        }
+    }
+
+    // Send (or resend) the qualification survey email for one enquiry
+    window.resendSurvey = function (btn, submissionId) {
+        const label = btn.querySelector('.rs-label');
+        const original = label.textContent;
+        btn.disabled = true;
+        btn.classList.add('opacity-60');
+        label.textContent = 'Sending…';
+
+        fetch(API_BASE + '/wl/admin/customer/survey/send', {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({ submission_id: submissionId })
+        })
+        .then(r => r.json())
+        .then(json => {
+            if (!json.success) throw new Error(json.error || 'Send failed');
+            label.textContent = 'Sent ✓';
+            setTimeout(() => { label.textContent = 'Resend survey'; }, 4000);
+        })
+        .catch(err => {
+            alert('Could not send survey: ' + err.message);
+            label.textContent = original;
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-60');
+        });
+    };
+})();
+</script>

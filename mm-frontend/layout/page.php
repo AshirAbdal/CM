@@ -52,7 +52,7 @@
             .container-x { @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12; }
 
             /* ── Typography system ─────────────────────────────── */
-            /* Headings — Playfair Display, responsive (scale up to target px) */
+            /* Headings - Playfair Display, responsive (scale up to target px) */
             .heading-xl       { @apply font-display font-semibold leading-[1.2] text-[36px] sm:text-[44px] lg:text-[56px]; }
             .heading-l        { @apply font-display font-semibold leading-[1.2] text-[32px] sm:text-[40px] lg:text-[48px]; }
             .heading-m        { @apply font-display font-semibold leading-[1.2] text-[28px] sm:text-[34px] lg:text-[40px]; }
@@ -60,7 +60,7 @@
             /* Titles */
             .text-primary-ttl   { @apply font-display font-semibold text-[22px] sm:text-[24px]; }
             .text-secondary-ttl { @apply font-display font-semibold text-[20px]; }
-            /* Body — Open Sans */
+            /* Body - Open Sans */
             .text-body        { @apply font-sans font-normal text-[16px] leading-[1.5]; }
             .text-accent      { @apply font-sans font-normal text-[16px]; }
             .text-body-s      { @apply font-sans font-normal text-[14px] leading-[1.5]; }
@@ -83,6 +83,8 @@
     </style>
     <script src="/app.js" defer></script>
     <script src="/spa.js" defer></script>
+    <!-- Google reCAPTCHA v2. Explicit render so it also works after SPA navigation; see renderRecaptcha() in app.js -->
+    <script src="https://www.google.com/recaptcha/api.js?onload=onloadRecaptchaCallback&render=explicit" async defer></script>
 </head>
 <body>
 <div class="flex flex-col">

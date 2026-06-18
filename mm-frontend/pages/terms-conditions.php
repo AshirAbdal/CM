@@ -3,13 +3,13 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Terms & Conditions — Majestic Marquees & Tents",
+    "title": "Terms & Conditions - Majestic Marquees & Tents",
     "name": {
         "description": "The terms and conditions that govern the use of Majestic Marquees & Tents services and website.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Terms & Conditions — Majestic Marquees & Tents",
+        "og:title": "Terms & Conditions - Majestic Marquees & Tents",
         "og:description": "The terms and conditions that govern the use of Majestic Marquees & Tents services and website.",
         "og:type": "website"
     }

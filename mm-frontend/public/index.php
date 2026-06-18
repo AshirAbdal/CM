@@ -16,11 +16,26 @@ set_exception_handler(function (Throwable $e): void {
     echo '<!DOCTYPE html><html><body><h1>Something went wrong.</h1></body></html>';
     exit;
 });
+$_https = (($_SERVER['HTTPS'] ?? '') === 'on')
+       || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
 session_start([
     'cookie_httponly' => true,
     'cookie_samesite' => 'Strict',
+    'cookie_secure'   => $_https,   // HTTPS-only cookie in production
     'use_strict_mode' => true,
 ]);
+unset($_https);
+
+// Session hygiene - defend against fixation / stale sessions. Rotate the
+// session id every 2h while preserving CSRF + multi-step form state.
+$_now = time();
+if (!isset($_SESSION['created_at'])) {
+    $_SESSION['created_at'] = $_now;
+} elseif ($_now - $_SESSION['created_at'] > 7200) {
+    session_regenerate_id(true);
+    $_SESSION['created_at'] = $_now;
+}
+unset($_now);
 
 require __DIR__ . '/../lib/helpers.php';
 
@@ -66,17 +81,17 @@ ob_start();
 require $pageFile;
 $pageContent = ob_get_clean();
 
-// Extract page-meta JSON for PHP to inject into <head> (SEO — runs before JS)
+// Extract page-meta JSON for PHP to inject into <head> (SEO - runs before JS)
 $pageMeta = [];
 if (preg_match('/<script type="application\/json" id="page-meta">(.+?)<\/script>/s', $pageContent, $m)) {
     $pageMeta = json_decode(trim($m[1]), true) ?? [];
 }
 
 if ($isSpaRequest) {
-    // User clicked a link — keep the script block so spa.js can read it
+    // User clicked a link - keep the script block so spa.js can read it
     echo $pageContent;
 } else {
-    // Full page load — PHP already injected meta into <head>, strip the JSON block
+    // Full page load - PHP already injected meta into <head>, strip the JSON block
     $pageContent = preg_replace('/<script type="application\/json" id="page-meta">.+?<\/script>/s', '', $pageContent);
     require __DIR__ . '/../layout/page.php';
 }

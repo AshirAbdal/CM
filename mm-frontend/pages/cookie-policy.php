@@ -3,13 +3,13 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 ?>
 <script type="application/json" id="page-meta">
 {
-    "title": "Cookie Policy — Majestic Marquees & Tents",
+    "title": "Cookie Policy - Majestic Marquees & Tents",
     "name": {
         "description": "How Majestic Marquees & Tents uses cookies to improve site experience and analyze traffic.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Cookie Policy — Majestic Marquees & Tents",
+        "og:title": "Cookie Policy - Majestic Marquees & Tents",
         "og:description": "How Majestic Marquees & Tents uses cookies to improve site experience and analyze traffic.",
         "og:type": "website"
     }

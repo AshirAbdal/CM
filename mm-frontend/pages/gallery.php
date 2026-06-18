@@ -10,22 +10,22 @@ $steps = [
 $faqs = [
     ['q' => 'What services do you provide?', 'a' => 'We specialize in luxury outdoor marquee and stretch tent hire and sales, bespoke 3D-engineered canopies, and full styling support across South-East Asia and Oceania.'],
     ['q' => 'How can I request a quote?', 'a' => 'Share your event details through our contact form and our team will respond with a tailored proposal within 1–2 business days.'],
-    ['q' => 'Do you offer customized services?', 'a' => 'Yes — every event is unique. We offer bespoke design, custom canopies, and tailored styling to match your vision.'],
+    ['q' => 'Do you offer customized services?', 'a' => 'Yes - every event is unique. We offer bespoke design, custom canopies, and tailored styling to match your vision.'],
     ['q' => 'What locations do you serve?', 'a' => 'We are headquartered in Bali and operate across South-East Asia and Oceania. Reach out and we will confirm availability for your venue.'],
-    ['q' => 'What is your cancellation policy?', 'a' => 'Cancellation terms depend on event size and timing. Full details are shared in your booking agreement — please contact us for specifics.'],
+    ['q' => 'What is your cancellation policy?', 'a' => 'Cancellation terms depend on event size and timing. Full details are shared in your booking agreement - please contact us for specifics.'],
 ];
 ?>
 
 <script type="application/json" id="page-meta">
 {
-    "title": "Gallery — Majestic Marquees & Tents",
+    "title": "Gallery - Majestic Marquees & Tents",
     "name": {
-        "description": "Explore our event showcase — exquisite outdoor setups that transform any celebration into a breathtaking experience.",
+        "description": "Explore our event showcase - exquisite outdoor setups that transform any celebration into a breathtaking experience.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Gallery — Majestic Marquees & Tents",
-        "og:description": "Explore our event showcase — exquisite outdoor setups that transform any celebration into a breathtaking experience.",
+        "og:title": "Gallery - Majestic Marquees & Tents",
+        "og:description": "Explore our event showcase - exquisite outdoor setups that transform any celebration into a breathtaking experience.",
         "og:type": "website"
     }
 }

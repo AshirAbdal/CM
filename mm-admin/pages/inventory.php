@@ -124,13 +124,13 @@ $activeNav = 'inventory';
 {"title": "Inventory Import | Majestic Marquees Admin"}
 </script>
 
-<!-- CSV Import — collapsible strip -->
+<!-- CSV Import - collapsible strip -->
 <div class="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
     <button onclick="toggleCsvPanel()" class="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-slate-50 transition" id="csvToggleBtn">
         <div class="flex items-center gap-2">
             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span class="text-sm font-semibold text-slate-700">Product Inventory Import</span>
-            <span class="text-xs text-slate-400">— upload CSV to populate the product catalogue</span>
+            <span class="text-xs text-slate-400 hidden sm:inline">- upload CSV to populate the product catalogue</span>
         </div>
         <svg id="csvChevron" class="w-4 h-4 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </button>
@@ -177,11 +177,16 @@ $activeNav = 'inventory';
 </div>
 
 <!-- AI Invoice: left=editable invoice preview, right=chat -->
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-8" style="min-height:620px;">
+<style>
+@media (min-width:1280px) {
+  .inv-col { height: calc(100vh - 140px); }
+}
+</style>
+<div class="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-8">
 
 <!-- ══ LEFT: Editable Invoice Preview ══════════════════════════════════ -->
-<div class="flex flex-col" style="height:calc(100vh - 200px);min-height:620px;">
-    <div class="mb-4 flex items-center justify-between">
+<div class="inv-col flex flex-col" style="min-height:560px;">
+    <div class="mb-4 flex items-start justify-between flex-wrap gap-3">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">Invoice Preview</h2>
             <p class="text-slate-500 mt-1 text-sm">Auto-filled by AI · all fields are editable</p>
@@ -193,7 +198,7 @@ $activeNav = 'inventory';
         </div>
     </div>
 
-    <!-- Empty state (hidden — editor always visible) -->
+    <!-- Empty state (hidden - editor always visible) -->
     <div id="invoiceEmpty" class="hidden flex-1 flex flex-col items-center justify-center bg-white rounded-xl border-2 border-dashed border-slate-200 text-slate-400">
         <p class="text-sm font-medium">No invoice yet</p>
     </div>
@@ -201,9 +206,9 @@ $activeNav = 'inventory';
     <!-- Editable Invoice (always visible) -->
     <div id="invoiceEditor" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
         <!-- Header toolbar -->
-        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50 flex-shrink-0">
+        <div class="flex items-center justify-between px-3 sm:px-5 py-3 border-b border-slate-100 bg-slate-50 flex-shrink-0 flex-wrap gap-y-2">
             <span class="text-xs text-slate-400 font-medium uppercase tracking-wide">Estimate</span>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-1.5">
                 <button onclick="clearInvoice()" class="text-xs border border-slate-200 text-slate-500 px-2.5 py-1 rounded-lg hover:bg-white transition">Clear</button>
                 <button onclick="copyInvoiceJSON()" class="text-xs border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg hover:bg-white transition">Copy JSON</button>
                 <button onclick="saveEstimate()" id="invSaveBtn" class="text-xs border border-primary text-primary px-3 py-1 rounded-lg hover:bg-blue-50 transition">Save</button>
@@ -212,52 +217,67 @@ $activeNav = 'inventory';
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5">
-            <!-- Row 1: Customer name + email -->
-            <div class="grid grid-cols-2 gap-3 mb-3">
+        <div class="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-100">
+          <div class="bg-white w-full rounded-lg shadow-sm border border-slate-200 p-4 sm:p-8 lg:p-10">
+
+            <!-- Document header: logo/company + status (left) · company contact (right) -->
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Customer Name</label>
-                    <input id="invCustomer" type="text" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Customer name…">
+                    <div id="invDocLogo" class="text-[22px] font-bold text-slate-800 leading-tight">Your Company</div>
+                    <div id="invDocStatusBadge" class="mt-2"></div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Customer Email</label>
-                    <input id="invEmail" type="email" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="client@email.com">
-                </div>
+                <div id="invDocCompany" class="sm:text-right text-[13px] leading-6 text-slate-500"></div>
             </div>
-            <!-- Row 2: Customer address -->
-            <div class="mb-3">
-                <label class="block text-xs font-medium text-slate-500 mb-1">Customer Address</label>
-                <input id="invAddress" type="text" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Street, City, Postcode">
-            </div>
-            <!-- Row 3: Estimate No | Issue Date | Expiry Date | Currency | Status -->
-            <div class="grid grid-cols-5 gap-2 mb-4">
+
+            <div class="border-t-2 border-blue-500 mb-5"></div>
+
+            <div class="text-right text-[28px] font-bold tracking-wide text-slate-800 mb-6">ESTIMATE</div>
+
+            <!-- Billed to (editable) · estimate meta (editable) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 mb-7">
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Estimate No</label>
-                    <input id="invEstimateNo" type="text" class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="EST-01">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Billed to</p>
+                    <input id="invCustomer" type="text" placeholder="Customer name…"
+                           class="w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 -ml-2 text-[15px] font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <input id="invEmail" type="email" placeholder="client@email.com"
+                           class="w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 -ml-2 text-[13px] text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <input id="invAddress" type="text" placeholder="Street, City, Postcode"
+                           class="w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 -ml-2 text-[13px] text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Issue Date</label>
-                    <input id="invDate" type="date" class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Expiry Date</label>
-                    <input id="invExpiry" type="date" class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Currency</label>
-                    <select id="invCurrency" class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                        <option>EUR</option><option>USD</option><option>GBP</option><option>AUD</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
-                    <select id="invStatus" class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                        <option value="draft">Draft</option>
-                        <option value="sent">Sent</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="expired">Expired</option>
-                    </select>
+                <div class="text-right text-[13px] space-y-1.5">
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="text-[10px] uppercase tracking-wide text-slate-400">Estimate No</span>
+                        <input id="invEstimateNo" type="text" placeholder="EST-01"
+                               class="w-28 border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="text-[10px] uppercase tracking-wide text-slate-400">Issue Date</span>
+                        <input id="invDate" type="date"
+                               class="w-32 border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="text-[10px] uppercase tracking-wide text-slate-400">Expiry Date</span>
+                        <input id="invExpiry" type="date"
+                               class="w-32 border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="text-[10px] uppercase tracking-wide text-slate-400">Currency</span>
+                        <select id="invCurrency"
+                                class="border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option>EUR</option><option>USD</option><option>GBP</option><option>AUD</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="text-[10px] uppercase tracking-wide text-slate-400">Status</span>
+                        <select id="invStatus" onchange="updateInvStatusBadge()"
+                                class="border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="draft">Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -299,14 +319,12 @@ $activeNav = 'inventory';
             <div class="overflow-x-auto mb-2">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="border-b-2 border-slate-200 text-xs text-slate-500 uppercase">
-                            <th class="pb-2 text-left font-semibold">Item</th>
-                            <th class="pb-2 text-center font-semibold w-14">Qty</th>
-                            <th class="pb-2 text-right font-semibold w-22">Unit Price</th>
-                            <th class="pb-2 text-right font-semibold w-16">Disc %</th>
-                            <th class="pb-2 text-right font-semibold w-20">Disc €</th>
-                            <th class="pb-2 text-right font-semibold w-16">Tax %</th>
-                            <th class="pb-2 text-right font-semibold w-22">Subtotal</th>
+                        <tr class="border-b-2 border-slate-800 text-[10px] text-slate-400 uppercase tracking-wide">
+                            <th class="pb-2 text-left font-semibold">Item Name</th>
+                            <th class="pb-2 text-right font-semibold w-24">Price</th>
+                            <th class="pb-2 text-center font-semibold w-14">QTY</th>
+                            <th class="pb-2 text-center font-semibold w-16">TAX</th>
+                            <th class="pb-2 text-right font-semibold w-24">Subtotal</th>
                             <th class="pb-2 w-6"></th>
                         </tr>
                     </thead>
@@ -318,43 +336,43 @@ $activeNav = 'inventory';
                 Add blank line
             </button>
 
-            <!-- Totals breakdown -->
-            <div class="border-t border-slate-200 pt-3 space-y-1.5">
-                <div class="flex justify-between text-sm text-slate-500">
-                    <span>Subtotal</span>
-                    <span id="invSubtotalDisplay">EUR 0.00</span>
-                </div>
-                <div class="flex justify-between items-center text-sm text-slate-500">
-                    <span class="flex items-center gap-1">
-                        Freight
-                        <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">non-discountable</span>
-                    </span>
-                    <div class="flex items-center gap-1">
-                        <input id="invFreight" type="number" min="0" step="0.01" value="0.00"
-                               oninput="invRecalc()"
-                               class="w-24 border border-slate-200 rounded px-2 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary">
+            <!-- Summary (mirrors the printed estimate) -->
+            <div class="mt-6 flex justify-end">
+                <div class="w-full max-w-xs text-[13px] space-y-1.5">
+                    <div class="flex justify-between text-slate-500">
+                        <span>Subtotal</span>
+                        <span id="invSubtotalDisplay">EUR 0.00</span>
                     </div>
-                </div>
-                <div class="flex justify-between text-base font-bold text-slate-800 pt-1 border-t border-slate-200">
-                    <span>Total</span>
-                    <span id="invTotal">EUR 0.00</span>
+                    <div class="flex justify-between items-center text-slate-500">
+                        <span class="flex items-center gap-1">Freight
+                            <span class="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">non-disc</span>
+                        </span>
+                        <input id="invFreight" type="number" min="0" step="0.01" value="0.00" oninput="invRecalc()"
+                               class="w-24 border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div class="flex justify-between text-[15px] font-bold text-slate-800 pt-2 border-t-2 border-slate-800">
+                        <span>Amount Due</span>
+                        <span id="invTotal">EUR 0.00</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Notes -->
-            <div class="mt-4">
-                <label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
-                <textarea id="invNotes" rows="2" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" placeholder="Optional notes…"></textarea>
+            <div class="mt-6">
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Notes</p>
+                <textarea id="invNotes" rows="2" placeholder="Optional notes…"
+                          class="w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 -ml-2 text-[13px] text-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             </div>
+          </div>
         </div>
     </div>
 </div>
 
 <!-- ══ RIGHT: AI Chat ════════════════════════════════════════════════════ -->
-<div class="flex flex-col" style="height:calc(100vh - 200px);min-height:620px;">
+<div class="inv-col flex flex-col" style="min-height:480px;">
     <div class="mb-4">
         <h2 class="text-2xl font-bold text-slate-800">AI Invoice Assistant</h2>
-        <p class="text-slate-500 mt-1 text-sm">Describe what you need — AI will build the invoice from your product catalogue.</p>
+        <p class="text-slate-500 mt-1 text-sm">Describe what you need - AI will build the invoice from your product catalogue.</p>
     </div>
 
     <div class="flex flex-col flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -538,22 +556,64 @@ function appendBubble(role, text) {
 // ── Invoice Editor ────────────────────────────────────────────────────────────
 let invCompany   = null;  // loaded once from /wl/admin/company
 let invCurrentId = null;  // est_id if this estimate is saved
+let invSubmissionId = null;  // deal (lead submission) this offer belongs to, if any
 
 async function invLoadCompany() {
-    if (invCompany) return invCompany;
+    if (invCompany) { invRenderDocHeader(); return invCompany; }
     try {
         const res  = await fetch(API_BASE + '/wl/admin/company', {
             headers: { 'X-API-Key': API_KEY, 'Origin': ORIGIN, 'Authorization': 'Bearer ' + JWT }
         });
         if (res.ok) invCompany = await res.json();
     } catch (_) {}
+    invRenderDocHeader();
     return invCompany;
+}
+
+// Render the document header (logo / company name + contact block) from company info
+function invRenderDocHeader() {
+    const co = invCompany || {};
+    const logoEl = document.getElementById('invDocLogo');
+    if (logoEl) {
+        logoEl.innerHTML = co.logo_url
+            ? `<img src="${escHtml(co.logo_url)}" alt="logo" style="max-height:56px;max-width:180px;object-fit:contain">`
+            : escHtml(co.name || 'Your Company');
+    }
+    const coEl = document.getElementById('invDocCompany');
+    if (coEl) {
+        coEl.innerHTML =
+            (co.name    ? `<div class="font-semibold text-[15px] text-slate-800">${escHtml(co.name)}</div>` : '') +
+            (co.phone   ? `<div>${escHtml(co.phone)}</div>` : '') +
+            (co.address ? `<div>${escHtml(co.address).replace(/,/g,'<br>')}</div>` : '') +
+            (co.website ? `<div>${escHtml(co.website)}</div>` : '');
+    }
+}
+
+// Live status badge (matches the printed estimate colours)
+const INV_STATUS_COLORS = { draft:'#94a3b8', sent:'#3b82f6', accepted:'#16a34a', rejected:'#dc2626', expired:'#f59e0b' };
+function updateInvStatusBadge() {
+    const sel   = document.getElementById('invStatus');
+    const badge = document.getElementById('invDocStatusBadge');
+    if (!sel || !badge) return;
+    const s = sel.value || 'draft';
+    const c = INV_STATUS_COLORS[s] || '#94a3b8';
+    badge.innerHTML = `<span style="border:1px solid ${c};color:${c};padding:2px 12px;border-radius:20px;font-size:12px;text-transform:capitalize">${s}</span>`;
+}
+
+// Reveal the per-row discount controls (kept in the DOM so totals always compute)
+function invToggleDisc(btn) {
+    const wrap = btn.closest('td').querySelector('.inv-disc-wrap');
+    if (!wrap) return;
+    wrap.classList.remove('hidden');
+    btn.classList.add('hidden');
+    wrap.querySelector('.inv-disc')?.focus();
 }
 
 function invShowEditor() {
     document.getElementById('invoiceEmpty').classList.add('hidden');
     document.getElementById('invoiceEditor').classList.remove('hidden');
-    invLoadCompany(); // pre-fetch company info silently
+    invLoadCompany();        // pre-fetch + render company header
+    updateInvStatusBadge();  // sync status badge with current select
 }
 
 function loadInvoiceIntoEditor(inv) {
@@ -568,6 +628,8 @@ function loadInvoiceIntoEditor(inv) {
     document.getElementById('invFreight').value     = (inv.freight ?? 0).toFixed(2);
     const cur = document.getElementById('invCurrency');
     [...cur.options].forEach(o => o.selected = o.value === (inv.currency || 'EUR'));
+    if (inv.status) document.getElementById('invStatus').value = inv.status;
+    updateInvStatusBadge();
     const tbody = document.getElementById('invItemsBody');
     tbody.innerHTML = '';
     (inv.items || []).forEach(item => invAppendRow(item.name, item.qty, item.unit_price, item.discount_percentage ?? 0, item.discount_flat ?? 0, item.tax_pct ?? 0));
@@ -583,58 +645,81 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-assign estimate number
     document.getElementById('invEstimateNo').value = 'EST-' + Date.now().toString().slice(-4);
     invShowEditor();
+
+    // When opened from a deal (Lead Management → New offer), link this offer to
+    // that deal and prefill the customer details.
+    const _q = new URLSearchParams(window.location.search);
+    const _sid = parseInt(_q.get('submission_id') || '0', 10);
+    if (_sid > 0) {
+        invSubmissionId = _sid;
+        if (_q.get('name'))    document.getElementById('invCustomer').value = _q.get('name');
+        if (_q.get('email'))   document.getElementById('invEmail').value    = _q.get('email');
+        if (_q.get('address')) document.getElementById('invAddress').value  = _q.get('address');
+        const banner = document.getElementById('invDealBanner');
+        if (banner) { banner.classList.remove('hidden'); }
+    }
 });
 
 function invAppendRow(name = '', qty = 1, price = 0, disc = 0, flat = 0, tax = 0, nonDisc = false) {
     const tbody = document.getElementById('invItemsBody');
     const tr = document.createElement('tr');
-    tr.className = 'border-b border-slate-100 group';
+    tr.className = 'border-b border-slate-100 group align-top';
+    const hasDisc   = (Number(disc) > 0 || Number(flat) > 0);
     const lockBadge = nonDisc
-        ? `<span class="text-xs bg-amber-100 text-amber-700 px-1 rounded ml-1" title="Non-discountable">🔒</span>`
+        ? `<span class="text-[10px] bg-amber-100 text-amber-700 px-1 rounded ml-1" title="Non-discountable">🔒</span>`
         : '';
+    const discToggle = nonDisc
+        ? ''
+        : `<button type="button" onclick="invToggleDisc(this)" class="inv-disc-toggle text-[11px] text-slate-400 hover:text-blue-600 mt-0.5 ${hasDisc ? 'hidden' : ''}">+ discount</button>`;
     tr.innerHTML = `
-        <td class="py-1 pr-1">
+        <td class="py-2 pr-3">
             <div class="flex items-center">
                 <input type="text" value="${escHtml(name)}" oninput="invRecalc()"
-                       class="inv-name w-full border border-transparent hover:border-slate-200 focus:border-primary rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Item name…">
+                       class="inv-name w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Item name…">
                 ${lockBadge}
             </div>
+            <div class="inv-disc-wrap ${hasDisc ? '' : 'hidden'} flex items-end gap-3 mt-1.5 pl-2 bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5 w-fit">
+                <span class="text-[10px] uppercase tracking-wide text-slate-400 self-center mr-1">Discount</span>
+                <div>
+                    <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Percent (%)</label>
+                    <div class="relative">
+                        <input type="number" value="${Number(disc).toFixed(1)}" min="0" max="100" step="0.1" oninput="invRecalc()"
+                               ${nonDisc ? 'disabled title="Non-discountable"' : ''}
+                               class="inv-disc w-20 border border-slate-200 rounded px-1.5 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500 pr-5 ${nonDisc ? 'opacity-40 cursor-not-allowed' : ''}" placeholder="0">
+                        <span class="absolute right-1.5 top-1 text-slate-400 text-[10px] pointer-events-none">%</span>
+                    </div>
+                </div>
+                <span class="text-[11px] text-slate-300 self-center pb-1">+</span>
+                <div>
+                    <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Flat (<span class="inv-disc-cur">EUR</span>)</label>
+                    <div class="relative">
+                        <input type="number" value="${Number(flat).toFixed(2)}" min="0" step="0.01" oninput="invRecalc()"
+                               ${nonDisc ? 'disabled title="Non-discountable"' : ''}
+                               class="inv-flat w-24 border border-slate-200 rounded px-1.5 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500 ${nonDisc ? 'opacity-40 cursor-not-allowed' : ''}" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+            ${discToggle}
         </td>
-        <td class="py-1 pr-1 w-14">
-            <input type="number" value="${qty}" min="0" oninput="invRecalc()"
-                   class="inv-qty w-full border border-transparent hover:border-slate-200 focus:border-primary rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary">
-        </td>
-        <td class="py-1 pr-1 w-24">
+        <td class="py-2 pr-3 w-24">
             <input type="number" value="${Number(price).toFixed(2)}" min="0" step="0.01" oninput="invRecalc()"
-                   class="inv-price w-full border border-transparent hover:border-slate-200 focus:border-primary rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary">
+                   class="inv-price w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
         </td>
-        <td class="py-1 pr-1 w-16">
-            <div class="relative">
-                <input type="number" value="${Number(disc).toFixed(1)}" min="0" max="100" step="0.1" oninput="invRecalc()"
-                       ${nonDisc ? 'disabled title="Non-discountable"' : ''}
-                       class="inv-disc w-full border border-transparent hover:border-slate-200 focus:border-primary rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary pr-5 ${nonDisc ? 'opacity-40 cursor-not-allowed' : ''}">
-                <span class="absolute right-1.5 top-1 text-slate-400 text-xs pointer-events-none">%</span>
-            </div>
+        <td class="py-2 pr-3 w-14">
+            <input type="number" value="${qty}" min="0" oninput="invRecalc()"
+                   class="inv-qty w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500">
         </td>
-        <td class="py-1 pr-1 w-20">
-            <div class="relative">
-                <input type="number" value="${Number(flat).toFixed(2)}" min="0" step="0.01" oninput="invRecalc()"
-                       ${nonDisc ? 'disabled title="Non-discountable"' : ''}
-                       class="inv-flat w-full border border-transparent hover:border-slate-200 focus:border-primary rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary pr-4 ${nonDisc ? 'opacity-40 cursor-not-allowed' : ''}">
-                <span class="absolute right-1.5 top-1 text-slate-400 text-xs pointer-events-none">€</span>
-            </div>
-        </td>
-        <td class="py-1 pr-1 w-16">
+        <td class="py-2 pr-3 w-16">
             <div class="relative">
                 <input type="number" value="${Number(tax).toFixed(1)}" min="0" max="100" step="0.1" oninput="invRecalc()"
-                       class="inv-tax w-full border border-transparent hover:border-slate-200 focus:border-primary rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary pr-5">
-                <span class="absolute right-1.5 top-1 text-slate-400 text-xs pointer-events-none">%</span>
+                       class="inv-tax w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500 pr-5">
+                <span class="absolute right-1.5 top-1.5 text-slate-400 text-xs pointer-events-none">%</span>
             </div>
         </td>
-        <td class="py-1 pr-1 w-22 text-right text-sm text-slate-700 inv-sub font-medium whitespace-nowrap"></td>
-        <td class="py-1 w-6 text-center">
+        <td class="py-2 w-24 text-right text-sm text-slate-800 inv-sub font-medium whitespace-nowrap pt-2.5"></td>
+        <td class="py-2 w-6 text-center">
             <button onclick="this.closest('tr').remove(); invRecalc();"
-                    class="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition">
+                    class="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition pt-1">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </td>`;
@@ -647,6 +732,7 @@ function invAddRow() { invAppendRow(); }
 
 function invRecalc() {
     const cur     = document.getElementById('invCurrency').value;
+    document.querySelectorAll('.inv-disc-cur').forEach(el => el.textContent = cur);
     let   subtotal = 0;
     document.querySelectorAll('#invItemsBody tr').forEach(tr => {
         const qty   = parseFloat(tr.querySelector('.inv-qty')?.value)   || 0;
@@ -688,6 +774,7 @@ function clearInvoice() {
     document.getElementById('invFreight').value     = '0.00';
     document.getElementById('invItemsBody').innerHTML = '';
     document.getElementById('invStatus').value      = 'draft';
+    updateInvStatusBadge();
     invRecalc();
 }
 
@@ -723,25 +810,71 @@ async function invDoSearch() {
 function renderInvDropdown() {
     const dd = document.getElementById('invSearchDropdown');
     if (!invSearchResults.length) { dd.innerHTML = '<p class="px-4 py-3 text-xs text-slate-400">No products found.</p>'; dd.classList.remove('hidden'); return; }
-    dd.innerHTML = invSearchResults.map((r, i) => `
+    dd.innerHTML = invSearchResults.map((r, i) => {
+        if (r.is_leaf === false) {
+            // Structural node (tent type / size group / tent size / category) → expandable
+            return `
         <div class="inv-dd-item flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-blue-50 transition"
              data-idx="${i}" onclick="invPickResult(${i})">
-            <div>
+            <div class="flex items-center gap-2 min-w-0">
+                <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                <div class="min-w-0">
+                    <span class="text-sm font-medium text-slate-800">${escHtml(r.item_name)}</span>
+                    <span class="text-xs text-slate-400 ml-2">${escHtml(r.breadcrumb)}</span>
+                </div>
+            </div>
+            <span class="text-xs font-medium text-amber-600 ml-3 whitespace-nowrap">Load all items</span>
+        </div>`;
+        }
+        // Leaf item → adds a single line
+        return `
+        <div class="inv-dd-item flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-blue-50 transition"
+             data-idx="${i}" onclick="invPickResult(${i})">
+            <div class="min-w-0">
                 <span class="text-sm font-medium text-slate-800">${escHtml(r.item_name)}</span>
                 <span class="text-xs text-slate-400 ml-2">${escHtml(r.breadcrumb)}</span>
             </div>
-            <span class="text-xs font-semibold text-primary ml-3 whitespace-nowrap">${r.unit_price > 0 ? 'EUR '+Number(r.unit_price).toFixed(2) : '—'}</span>
-        </div>`).join('');
+            <span class="text-xs font-semibold text-primary ml-3 whitespace-nowrap">${r.unit_price > 0 ? 'EUR '+Number(r.unit_price).toFixed(2) : '-'}</span>
+        </div>`;
+    }).join('');
     dd.classList.remove('hidden');
 }
 
 function invPickResult(idx) {
     const r = invSearchResults[idx];
     if (!r) return;
-    invAppendRow(r.item_name, 1, r.unit_price ?? 0, r.discount_percentage ?? 0, r.discount_flat ?? 0, 0, !!r.non_discountable);
     document.getElementById('invCatalogueSearch').value = '';
     document.getElementById('invSearchDropdown').classList.add('hidden');
     invSearchResults = [];
+
+    // Structural node → load every leaf item beneath it (group / tent size / category)
+    if (r.is_leaf === false) {
+        invLoadGroupItems(r.p_id, r.item_name);
+        return;
+    }
+    // Leaf item → add a single line
+    invShowEditor();
+    invAppendRow(r.item_name, 1, r.unit_price ?? 0, r.discount_percentage ?? 0, r.discount_flat ?? 0, 0, !!r.non_discountable);
+}
+
+// Load all leaf items under a structural node (shared with the tent loader path)
+async function invLoadGroupItems(p_id, label) {
+    try {
+        const res  = await fetch(API_BASE + '/wl/admin/products/' + p_id + '/items', {
+            headers: { 'X-API-Key': API_KEY, 'Origin': ORIGIN, 'Authorization': 'Bearer ' + JWT }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.items?.length) {
+            alert('No items found under "' + label + '".');
+            return;
+        }
+        invShowEditor();
+        data.items.forEach(item =>
+            invAppendRow(item.item_name, 1, item.unit_price, item.discount_percentage, item.discount_flat, 0, !!item.non_discountable)
+        );
+    } catch (e) {
+        alert('Could not load items: ' + e.message);
+    }
 }
 
 function invSearchKey(e) {
@@ -869,6 +1002,7 @@ function buildInvoiceFromEditor() {
     const freight  = parseFloat(document.getElementById('invFreight').value) || 0;
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
     return {
+        submission_id:    invSubmissionId || undefined,
         customer_name:    document.getElementById('invCustomer').value,
         customer_email:   document.getElementById('invEmail').value,
         customer_address: document.getElementById('invAddress').value,
@@ -960,7 +1094,7 @@ async function printInvoice() {
 
     const win = window.open('', '_blank');
     win.document.write(`<!DOCTYPE html><html><head>
-    <title>Estimate ${escHtml(inv.estimate_no||'')} — ${escHtml(inv.customer_name||'')}</title>
+    <title>Estimate ${escHtml(inv.estimate_no||'')} - ${escHtml(inv.customer_name||'')}</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:Arial,sans-serif;color:#334155;background:#fff;padding:50px;max-width:780px;margin:auto}
@@ -1002,13 +1136,13 @@ async function printInvoice() {
     <div class="meta">
       <div class="billed-to">
         <div class="label">Billed to</div>
-        <div class="name">${escHtml(inv.customer_name||'—')}</div>
+        <div class="name">${escHtml(inv.customer_name||'-')}</div>
         ${inv.customer_email ? `<a href="mailto:${escHtml(inv.customer_email)}">${escHtml(inv.customer_email)}</a><br>` : ''}
         ${inv.customer_address ? escHtml(inv.customer_address) : ''}
       </div>
       <div class="est-meta">
-        <div><span class="label">Estimate No</span><br><span class="value">${escHtml(inv.estimate_no||'—')}</span></div>
-        <div style="margin-top:8px"><span class="label">Issue Date</span><br><span class="value">${escHtml(inv.issue_date||'—')}</span></div>
+        <div><span class="label">Estimate No</span><br><span class="value">${escHtml(inv.estimate_no||'-')}</span></div>
+        <div style="margin-top:8px"><span class="label">Issue Date</span><br><span class="value">${escHtml(inv.issue_date||'-')}</span></div>
         ${inv.expiry_date ? `<div style="margin-top:8px"><span class="label">Expiry Date</span><br><span class="value">${escHtml(inv.expiry_date)}</span></div>` : ''}
       </div>
     </div>
@@ -1085,7 +1219,7 @@ function escHtml(str) {
 <!-- ══ LEFT: CSV Import ══════════════════════════════════════════════════ -->
 <div>
 <!-- ══════════════════════════════════════════════════════════════════════ -->
-<!-- DISCOUNT MANAGER — full-width section below the two-column grid      -->
+<!-- DISCOUNT MANAGER - full-width section below the two-column grid      -->
 <!-- ══════════════════════════════════════════════════════════════════════ -->
 <div class="mt-10">
     <div class="mb-4">
@@ -1106,7 +1240,7 @@ function escHtml(str) {
     </div>
 
     <!-- Apply-to-all bulk bar (shown after search) -->
-    <div id="bulkBar" class="hidden bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 mb-4 flex items-center gap-4 flex-wrap">
+    <div id="bulkBar" class="hidden bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
         <span class="text-sm font-medium text-blue-800" id="bulkLabel">Apply same discount to all results:</span>
         <input type="number" min="0" max="100" step="0.01" id="bulkDiscountInput"
                value="0"
@@ -1121,8 +1255,8 @@ function escHtml(str) {
     </div>
 
     <!-- Results table -->
-    <div id="discountResults" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <table class="w-full text-sm">
+    <div id="discountResults" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto mb-6">
+        <table class="w-full text-sm min-w-[600px]">
             <thead class="bg-slate-50 border-b border-slate-200">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Item</th>
@@ -1325,7 +1459,7 @@ function showFeedback(success, msg) {
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════════════ -->
-<!-- PRODUCT BROWSER — infinite-scroll CSV-style view of all products      -->
+<!-- PRODUCT BROWSER - infinite-scroll CSV-style view of all products      -->
 <!-- ══════════════════════════════════════════════════════════════════════ -->
 <div class="mt-10">
     <div class="flex items-center justify-between mb-3">
@@ -1337,25 +1471,25 @@ function showFeedback(success, msg) {
     <!-- Filter bar -->
     <div class="flex flex-wrap gap-2 mb-3">
         <input type="text" id="productSearchInput" placeholder="Search item, SKU, category, weight…"
-               class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary"
+               class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary"
                oninput="debounceProductSearch()">
         <select id="pbFilterTentType" onchange="pbReset()"
-                class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex-1 sm:flex-none min-w-[8rem] focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="">All Tent Types</option>
         </select>
         <input type="text" id="pbFilterWeight" placeholder="Weight (e.g. 15kg)"
-               class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-primary"
+               class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex-1 sm:flex-none sm:w-36 focus:outline-none focus:ring-2 focus:ring-primary"
                oninput="debounceProductSearch()">
         <input type="text" id="pbFilterSku" placeholder="SKU"
-               class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-primary"
+               class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex-1 sm:flex-none sm:w-40 focus:outline-none focus:ring-2 focus:ring-primary"
                oninput="debounceProductSearch()">
         <button onclick="pbClearFilters()" class="text-xs border border-slate-200 text-slate-500 px-3 py-2 rounded-lg hover:bg-slate-50 transition">Clear filters</button>
     </div>
 
-    <!-- Scrollable table wrapper — fixed height, header stays sticky -->
+    <!-- Scrollable wrapper - table on desktop, cart-style cards on mobile -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div id="productScrollBox" class="overflow-auto" style="max-height:600px;">
-            <table class="w-full text-xs whitespace-nowrap">
+            <table class="w-full text-xs whitespace-nowrap hidden md:table">
                 <thead class="bg-slate-50 border-b border-slate-200" style="position:sticky;top:0;z-index:10;">
                     <tr>
                         <th class="px-3 py-2.5 text-left font-semibold text-slate-500 uppercase tracking-wide">Tent Type</th>
@@ -1385,6 +1519,10 @@ function showFeedback(success, msg) {
                     <tr><td colspan="21" class="px-4 py-8 text-center text-slate-400">Loading…</td></tr>
                 </tbody>
             </table>
+            <!-- Mobile cart-style card list (same data, shown < md) -->
+            <div id="productCardList" class="md:hidden p-3 space-y-3">
+                <p class="py-8 text-center text-slate-400 text-sm">Loading…</p>
+            </div>
             <!-- Sentinel element – observed to trigger loading the next batch -->
             <div id="productSentinel" class="h-1"></div>
         </div>
@@ -1400,7 +1538,7 @@ function showFeedback(success, msg) {
 </div>
 
 <script>
-// ── Product Browser — infinite scroll ────────────────────────────────────────
+// ── Product Browser - infinite scroll ────────────────────────────────────────
 const PB_LIMIT   = 50;
 let   pbPage      = 1;
 let   pbTotal     = 0;
@@ -1456,6 +1594,7 @@ function pbReset() {
 
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '<tr><td colspan="21" class="px-4 py-8 text-center text-slate-400">Loading…</td></tr>';
+    document.getElementById('productCardList').innerHTML = '<p class="py-8 text-center text-slate-400 text-sm">Loading…</p>';
     document.getElementById('productTotal').textContent = 'Loading products…';
 
     pbFetch();
@@ -1466,7 +1605,7 @@ function pbBuildUrl() {
     const tentType  = document.getElementById('pbFilterTentType').value.trim();
     const weight    = document.getElementById('pbFilterWeight').value.trim();
     const sku       = document.getElementById('pbFilterSku').value.trim();
-    // Combine all into one q param — backend searches item_name, sku, weight, tent_type
+    // Combine all into one q param - backend searches item_name, sku, weight, tent_type
     const parts = [q, tentType, weight, sku].filter(Boolean);
     const combined = parts.join(' ');
     return API_BASE + '/wl/admin/products?page=' + pbPage + '&limit=' + PB_LIMIT
@@ -1489,22 +1628,25 @@ async function pbFetch() {
         });
         const data = await res.json();
         const tbody = document.getElementById('productTableBody');
+        const cardList = document.getElementById('productCardList');
 
         if (!res.ok) {
             tbody.innerHTML = '<tr><td colspan="21" class="px-4 py-8 text-center text-red-400">' + escHtml(data.error || 'Error') + '</td></tr>';
+            cardList.innerHTML = '<p class="py-8 text-center text-red-400 text-sm">' + escHtml(data.error || 'Error') + '</p>';
             pbExhausted = true;
             return;
         }
 
         pbTotal = data.total;
 
-        if (pbPage === 1) tbody.innerHTML = '';
+        if (pbPage === 1) { tbody.innerHTML = ''; cardList.innerHTML = ''; }
 
         if (!data.rows.length && pbPage === 1) {
             tbody.innerHTML = '<tr><td colspan="21" class="px-4 py-8 text-center text-slate-400">No products found.</td></tr>';
+            cardList.innerHTML = '<p class="py-8 text-center text-slate-400 text-sm">No products found.</p>';
             pbExhausted = true;
         } else {
-            pbAppendRows(data.rows, tbody);
+            pbAppendRows(data.rows, tbody, cardList);
             pbPage++;
             if (pbPage > data.pages) pbExhausted = true;
         }
@@ -1517,6 +1659,8 @@ async function pbFetch() {
     } catch (e) {
         document.getElementById('productTableBody').innerHTML =
             '<tr><td colspan="21" class="px-4 py-8 text-center text-red-400">Network error: ' + escHtml(e.message) + '</td></tr>';
+        document.getElementById('productCardList').innerHTML =
+            '<p class="py-8 text-center text-red-400 text-sm">Network error: ' + escHtml(e.message) + '</p>';
         pbExhausted = true;
     } finally {
         pbLoading = false;
@@ -1524,8 +1668,9 @@ async function pbFetch() {
     }
 }
 
-function pbAppendRows(rows, tbody) {
-    const frag = document.createDocumentFragment();
+function pbAppendRows(rows, tbody, cardList) {
+    const frag     = document.createDocumentFragment();
+    const cardFrag = document.createDocumentFragment();
     rows.forEach(r => {
         const key   = r.tent_type + '||' + r.size_group + '||' + r.tent_size;
         const isNew = key !== pbLastKey && pbLastKey !== '';
@@ -1536,27 +1681,27 @@ function pbAppendRows(rows, tbody) {
 
         const disc  = r.discount_percentage > 0
             ? `<span class="inline-block px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">${r.discount_percentage}%</span>`
-            : `<span class="text-slate-300">—</span>`;
+            : `<span class="text-slate-300">-</span>`;
         const price = r.unit_price > 0
             ? `€${r.unit_price.toFixed(2)}`
-            : `<span class="text-slate-300">—</span>`;
+            : `<span class="text-slate-300">-</span>`;
 
         tr.innerHTML = `
-            <td class="px-3 py-1.5 text-slate-700 font-medium">${escHtml(r.tent_type) || '<span class="text-slate-300">—</span>'}</td>
-            <td class="px-3 py-1.5 text-slate-600">${escHtml(r.size_group) || '<span class="text-slate-300">—</span>'}</td>
-            <td class="px-3 py-1.5 text-slate-700 font-semibold">${escHtml(r.tent_size) || '<span class="text-slate-300">—</span>'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.seated) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.cocktail) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.cinema) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.coating) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.weight) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.packed_size) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500 max-w-[120px] truncate" title="${escHtml(r.colours)}">${escHtml(r.colours) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${r.area_m2 || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.centerpole_config) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.bag_size) || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${r.parts_bags || '—'}</td>
-            <td class="px-3 py-1.5 text-slate-500">${r.anchor_bags || '—'}</td>
+            <td class="px-3 py-1.5 text-slate-700 font-medium">${escHtml(r.tent_type) || '<span class="text-slate-300">-</span>'}</td>
+            <td class="px-3 py-1.5 text-slate-600">${escHtml(r.size_group) || '<span class="text-slate-300">-</span>'}</td>
+            <td class="px-3 py-1.5 text-slate-700 font-semibold">${escHtml(r.tent_size) || '<span class="text-slate-300">-</span>'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.seated) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.cocktail) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.cinema) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.coating) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.weight) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.packed_size) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500 max-w-[120px] truncate" title="${escHtml(r.colours)}">${escHtml(r.colours) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${r.area_m2 || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.centerpole_config) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${escHtml(r.bag_size) || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${r.parts_bags || '-'}</td>
+            <td class="px-3 py-1.5 text-slate-500">${r.anchor_bags || '-'}</td>
             <td class="px-3 py-1.5 text-blue-600 font-medium">${escHtml(r.category)}</td>
             <td class="px-3 py-1.5 text-slate-800 font-semibold">${escHtml(r.item_name)}</td>
             <td class="px-3 py-1.5 text-right text-slate-700">${price}</td>
@@ -1569,8 +1714,58 @@ function pbAppendRows(rows, tbody) {
                 </button>
             </td>`;
         frag.appendChild(tr);
+
+        if (cardList) cardFrag.appendChild(pbBuildCard(r));
     });
     tbody.appendChild(frag);
+    if (cardList) cardList.appendChild(cardFrag);
+}
+
+// Build a single cart-style product card for the mobile view
+function pbBuildCard(r) {
+    const card = document.createElement('div');
+    card.className = 'border border-slate-200 rounded-xl bg-white p-4 shadow-sm';
+
+    const discBadge = r.discount_percentage > 0
+        ? `<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">${r.discount_percentage}% off</span>`
+        : '';
+    const priceTxt = r.unit_price > 0 ? `€${r.unit_price.toFixed(2)}` : '-';
+    const context  = [r.tent_type, r.size_group, r.tent_size].filter(Boolean).map(escHtml).join(' › ');
+
+    // All spec fields - only render the ones that have a value
+    const specs = [
+        ['Seated', r.seated], ['Cocktail', r.cocktail], ['Cinema', r.cinema],
+        ['Coating', r.coating], ['Weight', r.weight], ['Packed Size', r.packed_size],
+        ['Colours', r.colours], ['Area m²', r.area_m2], ['Centerpole', r.centerpole_config],
+        ['Bag', r.bag_size], ['Parts', r.parts_bags], ['Anchors', r.anchor_bags],
+    ];
+    const specRows = specs
+        .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== 0)
+        .map(([label, v]) => `
+            <div class="flex justify-between gap-2">
+                <span class="text-slate-400">${label}</span>
+                <span class="text-slate-700 text-right truncate">${escHtml(v)}</span>
+            </div>`).join('');
+
+    card.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+                ${r.category ? `<p class="text-[11px] text-blue-600 font-medium uppercase tracking-wide truncate">${escHtml(r.category)}</p>` : ''}
+                <h3 class="text-sm font-semibold text-slate-800 break-words">${escHtml(r.item_name)}</h3>
+                ${context ? `<p class="text-xs text-slate-400 mt-0.5">${context}</p>` : ''}
+            </div>
+            <button onclick="pbOpenEdit(${JSON.stringify(r).replace(/"/g,'&quot;')})"
+                    class="flex-shrink-0 text-slate-400 hover:text-primary transition p-1" title="Edit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.5-6.5a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
+            </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+            <span class="text-lg font-bold text-slate-800">${priceTxt}</span>
+            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">Qty: ${r.quantity}</span>
+            ${discBadge}
+        </div>
+        ${specRows ? `<div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 pt-3 border-t border-slate-100 text-xs">${specRows}</div>` : ''}`;
+    return card;
 }
 
 function pbInitObserver() {

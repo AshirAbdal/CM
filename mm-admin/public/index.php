@@ -33,7 +33,7 @@ if ($path === '/logout') {
 }
 
 if (in_array($path, ['/', '/login'])) {
-    // Redirect root to /login — one canonical URL for the login page
+    // Redirect root to /login - one canonical URL for the login page
     if ($path === '/') {
         header('Location: /login', true, 302);
         exit;
@@ -55,16 +55,32 @@ if (in_array($path, ['/', '/login'])) {
 } elseif ($path === '/inventory') {
     if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
     $pageFile = __DIR__ . '/../pages/inventory.php';
+} elseif ($path === '/survey-questions') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/survey_questions.php';
+} elseif ($path === '/lead-management') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/lead_management.php';
+} elseif ($path === '/deal') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/deal.php';
 } elseif (preg_match('#^/estimate/([a-f0-9]{64})$#', $path, $m)) {
-    // Public estimate page — no auth required
+    // Public estimate page - no auth required
     $_GET['token'] = $m[1];
     $pageFile = __DIR__ . '/../pages/estimate_public.php';
-    // Public page — output directly, skip admin layout
+    // Public page - output directly, skip admin layout
+    require $pageFile;
+    exit;
+} elseif (preg_match('#^/survey/([a-f0-9]{64})$#', $path, $m)) {
+    // Public verification survey page - no auth required
+    $_GET['token'] = $m[1];
+    $pageFile = __DIR__ . '/../pages/survey_public.php';
+    // Public page - output directly, skip admin layout
     require $pageFile;
     exit;
 } else {
     http_response_code(404);
-    echo '<!DOCTYPE html><html><body><h1>404 — Page Not Found</h1></body></html>';
+    echo '<!DOCTYPE html><html><body><h1>404 - Page Not Found</h1></body></html>';
     exit;
 }
 

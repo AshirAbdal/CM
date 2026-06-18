@@ -26,13 +26,13 @@ $faqs = [
 
 <script type="application/json" id="page-meta">
 {
-    "title": "Our Tents — Majestic Marquees & Tents",
+    "title": "Our Tents - Majestic Marquees & Tents",
     "name": {
         "description": "Explore our stretch, sailcloth and bespoke tent styles, crafted with premium QTents roofs for unforgettable events.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Our Tents — Majestic Marquees & Tents",
+        "og:title": "Our Tents - Majestic Marquees & Tents",
         "og:description": "Explore our stretch, sailcloth and bespoke tent styles, crafted with premium QTents roofs for unforgettable events.",
         "og:type": "website"
     }

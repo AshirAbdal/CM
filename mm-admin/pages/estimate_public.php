@@ -1,5 +1,5 @@
 <?php
-// Public estimate view — no JWT required
+// Public estimate view - no JWT required
 // Accessed via /estimate/{64-char-token}
 if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
@@ -10,7 +10,7 @@ if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002
 unset($_is_local);
 
 $token = preg_replace('/[^a-f0-9]/', '', $_GET['token'] ?? '');
-if (strlen($token) !== 64) { http_response_code(404); echo '404 — Not found'; exit; }
+if (strlen($token) !== 64) { http_response_code(404); echo '404 - Not found'; exit; }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -112,7 +112,7 @@ function renderEstimate(d) {
             <div class="grid grid-cols-2 gap-8">
                 <div>
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Billed to</p>
-                    <p class="font-semibold text-slate-800">${esc(d.customer_name||'—')}</p>
+                    <p class="font-semibold text-slate-800">${esc(d.customer_name||'-')}</p>
                     ${d.customer_email ? `<p class="text-blue-600 text-sm">${esc(d.customer_email)}</p>` : ''}
                     ${d.customer_address ? `<p class="text-slate-500 text-sm">${esc(d.customer_address)}</p>` : ''}
                 </div>

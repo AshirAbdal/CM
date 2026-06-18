@@ -49,8 +49,12 @@ $layout = $layout ?? 'app';
 <body class="bg-gray-50 text-gray-800">
 <div class="flex min-h-screen bg-gray-50">
 
+    <!-- Mobile sidebar overlay -->
+    <div id="sidebar-overlay" onclick="closeSidebar()"
+         class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden"></div>
+
     <!-- Sidebar -->
-    <aside class="w-60 shrink-0 bg-gray-900 text-gray-200 flex flex-col sticky top-0 h-screen overflow-y-auto">
+    <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-30 w-60 shrink-0 bg-gray-900 text-gray-200 flex flex-col overflow-y-auto -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen transition-transform duration-300">
         <div class="px-6 py-5 border-b border-gray-700">
             <p class="text-xs uppercase tracking-widest text-gray-400">Admin Panel</p>
             <h1 class="mt-1 text-sm font-semibold text-white leading-snug">Majestic Marquees</h1>
@@ -82,6 +86,18 @@ $layout = $layout ?? 'app';
                         Inventory
                     </a>
                 </li>
+                <li>
+                    <a href="/survey-questions" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'survey-questions' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                        <span class="text-base leading-none">&#9783;</span>
+                        Survey Questions
+                    </a>
+                </li>
+                <li>
+                    <a href="/lead-management" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'lead-management' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                        <span class="text-base leading-none">&#9889;</span>
+                        Lead Management
+                    </a>
+                </li>
             </ul>
         </nav>
 
@@ -92,8 +108,14 @@ $layout = $layout ?? 'app';
 
     <!-- Main column -->
     <div class="flex flex-col flex-1 min-w-0">
-        <header class="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-            <div></div>
+        <header class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between">
+            <button onclick="openSidebar()" aria-label="Open menu"
+                    class="lg:hidden p-2 -ml-1 text-gray-500 hover:text-gray-800 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M3 12h18M3 6h18M3 18h18"/>
+                </svg>
+            </button>
+            <div class="hidden lg:block"></div>
             <div class="flex items-center gap-4">
                 <?php if (!empty($_SESSION['admin_name'])): ?>
                 <span class="text-sm text-gray-600"><?= e($_SESSION['admin_name']) ?></span>
@@ -120,7 +142,7 @@ $layout = $layout ?? 'app';
 
                     <!-- Dropdown -->
                     <div id="notif-dropdown"
-                         class="hidden absolute right-0 top-9 w-80 bg-white border border-gray-200
+                         class="hidden absolute right-0 top-9 w-[calc(100vw-1rem)] sm:w-80 max-w-80 bg-white border border-gray-200
                                 rounded-xl shadow-xl z-50 overflow-hidden">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                             <p class="text-sm font-semibold text-gray-700">Notifications</p>
@@ -263,6 +285,19 @@ $layout = $layout ?? 'app';
     // Load badge count on page load (doesn't open the dropdown)
     fetchNotifs();
 })();
+</script>
+
+<script>
+function openSidebar() {
+    document.getElementById('admin-sidebar').classList.remove('-translate-x-full');
+    document.getElementById('sidebar-overlay').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+    document.getElementById('admin-sidebar').classList.add('-translate-x-full');
+    document.getElementById('sidebar-overlay').classList.add('hidden');
+    document.body.style.overflow = '';
+}
 </script>
 </body>
 <?php endif; ?>

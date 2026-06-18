@@ -1,20 +1,24 @@
 <?php
 if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
-$contactStatus = handle_contact_submit();
-$contactSuccess = $contactStatus && $contactStatus['ok'];
-$contactError   = $contactStatus && !$contactStatus['ok'] ? $contactStatus['message'] : '';
+$contactStatus  = handle_contact_submit();
+$contactStep    = $contactStatus['step'] ?? 'form';
+$contactOk      = $contactStatus['ok']   ?? false;
+$contactSuccess = ($contactStep === 'done');
+$contactVerify  = ($contactStep === 'verify');
+$contactEmail   = $contactStatus['email'] ?? '';
+$contactError   = ($contactStatus && !$contactOk) ? ($contactStatus['message'] ?? '') : '';
 ?>
 
 <script type="application/json" id="page-meta">
 {
-    "title": "Contact & Get a Quote — Majestic Marquees & Tents",
+    "title": "Contact & Get a Quote - Majestic Marquees & Tents",
     "name": {
         "description": "Get in touch with Majestic Marquees & Tents to discuss your vision and request a personalized quote for your outdoor event.",
         "robots": "index, follow"
     },
     "property": {
-        "og:title": "Contact & Get a Quote — Majestic Marquees & Tents",
+        "og:title": "Contact & Get a Quote - Majestic Marquees & Tents",
         "og:description": "Get in touch with Majestic Marquees & Tents to discuss your vision and request a personalized quote for your outdoor event.",
         "og:type": "website"
     },
@@ -111,12 +115,16 @@ $contactError   = $contactStatus && !$contactStatus['ok'] ? $contactStatus['mess
     </div>
 </section>
 
-<section id="contact-form" class="section bg-[#f5f1e8]">
+<section id="contact-form" data-ajax-form-region class="section bg-[#f5f1e8]">
     <div class="container-x max-w-xl mx-auto">
         <div class="border border-forest-800/30 bg-[#f5f1e8] px-14 sm:px-24 py-20 sm:py-28">
             <h2 class="heading-m text-center font-display">Get in Touch</h2>
             <?php if ($contactSuccess): ?>
                 <p class="mt-10 text-center text-forest-800 font-medium">Thank you! We'll be in touch soon.</p>
+            <?php elseif ($contactVerify): ?>
+                <div class="mt-10">
+                    <?php render_verification_step($contactEmail, $contactError, false); ?>
+                </div>
             <?php else: ?>
                 <form class="mt-10 space-y-5" method="POST" action="/contact-get-a-quote#contact-form">
                     <?= csrf_field() ?>
@@ -142,6 +150,8 @@ $contactError   = $contactStatus && !$contactStatus['ok'] ? $contactStatus['mess
                         <textarea name="message" required rows="5"
                                   class="mt-2 w-full bg-[#f5f1e8] border border-forest-800/30 rounded-md px-4 py-2.5 text-sm text-forest-800 focus:outline-none focus:border-tan-500 resize-none"></textarea>
                     </label>
+
+                    <?= recaptcha_widget('light') ?>
 
                     <?php if ($contactError !== ''): ?><p class="text-red-600 text-sm"><?= e($contactError) ?></p><?php endif; ?>
 
