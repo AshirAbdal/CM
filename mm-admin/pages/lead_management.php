@@ -34,13 +34,14 @@ $meta   = $res['meta']  ?? [];
 $counts = $meta['stage_counts'] ?? [];
 
 // Pipeline stage definitions (the 6 forward stages + terminal "dead")
-$STAGES      = ['new', 'awaiting_info', 'qualified', 'offer_1', 'offer_2', 'won'];
+$STAGES      = ['new', 'awaiting_info', 'qualified', 'offer_1', 'offer_2', 'long_term', 'won'];
 $STAGE_SHORT = [
     'new'           => 'New',
     'awaiting_info' => 'Awaiting',
     'qualified'     => 'Qualified',
     'offer_1'       => '1st Offer',
     'offer_2'       => '2nd Offer',
+    'long_term'     => 'Long Term',
     'won'           => 'Won',
 ];
 

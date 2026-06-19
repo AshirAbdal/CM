@@ -64,6 +64,9 @@ if (in_array($path, ['/', '/login'])) {
 } elseif ($path === '/deal') {
     if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
     $pageFile = __DIR__ . '/../pages/deal.php';
+} elseif ($path === '/make-offer') {
+    if (empty($_SESSION['jwt'])) { header('Location: /login'); exit; }
+    $pageFile = __DIR__ . '/../pages/make_offer.php';
 } elseif (preg_match('#^/estimate/([a-f0-9]{64})$#', $path, $m)) {
     // Public estimate page - no auth required
     $_GET['token'] = $m[1];
