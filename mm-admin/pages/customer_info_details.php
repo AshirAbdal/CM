@@ -7,8 +7,23 @@ if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
+// Combined search filters (name/email/business, country, date range).
+$fq        = trim((string) ($_GET['q']         ?? ''));
+$fCountry  = trim((string) ($_GET['country']   ?? ''));
+$fDateFrom = trim((string) ($_GET['date_from'] ?? ''));
+$fDateTo   = trim((string) ($_GET['date_to']   ?? ''));
+$hasFilters = ($fq !== '' || $fCountry !== '' || $fDateFrom !== '' || $fDateTo !== '');
+
+$qs = http_build_query(array_filter([
+    'limit'     => 50,
+    'q'         => $fq,
+    'country'   => $fCountry,
+    'date_from' => $fDateFrom,
+    'date_to'   => $fDateTo,
+], static fn($v) => $v !== '' && $v !== null));
+
 // Fetch leads list from API
-$ch = curl_init(API_BASE . '/wl/admin/leads?limit=50');
+$ch = curl_init(API_BASE . '/wl/admin/leads?' . $qs);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => [
@@ -77,6 +92,42 @@ const _jwt       = <?= $jsJwt ?>;
         </button>
     </div>
 
+    <!-- Combined search: name/email/business + country + date range (server-side) -->
+    <form method="get" action="/customer-info-details" class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            <div class="lg:col-span-5">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Name, email or business</label>
+                <input type="text" name="q" value="<?= e($fq) ?>" placeholder="e.g. John, john@acme.com, Acme Ltd"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="lg:col-span-3">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                <input type="text" name="country" value="<?= e($fCountry) ?>" placeholder="e.g. United Kingdom"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="lg:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
+                <input type="date" name="date_from" value="<?= e($fDateFrom) ?>"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="lg:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+                <input type="date" name="date_to" value="<?= e($fDateTo) ?>"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-3">
+            <button type="submit" class="inline-flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Search
+            </button>
+            <?php if ($hasFilters): ?>
+            <a href="/customer-info-details" class="text-sm text-gray-500 hover:text-gray-800">Clear</a>
+            <span class="text-xs text-gray-400">Showing <?= count($leads) ?> of <?= (int) ($meta['total'] ?? count($leads)) ?> matching</span>
+            <?php endif; ?>
+        </div>
+    </form>
+
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div class="bg-white rounded-xl border <?= $statNew > 0 ? 'border-blue-300' : 'border-gray-200' ?> p-5">
@@ -109,7 +160,11 @@ const _jwt       = <?= $jsJwt ?>;
     <!-- Customer cards -->
     <?php if (empty($leads)): ?>
     <div class="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-400">
+        <?php if ($hasFilters): ?>
+        No customers match your search. <a href="/customer-info-details" class="text-blue-600 hover:underline">Clear filters</a>
+        <?php else: ?>
         No leads yet.
+        <?php endif; ?>
     </div>
     <?php else: ?>
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">

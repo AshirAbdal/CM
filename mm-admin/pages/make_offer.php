@@ -45,14 +45,14 @@ $activeNav = 'lead-management';
 
 <style>
 @media (min-width:1280px) {
-  .inv-col { height: calc(100vh - 150px); }
+    .inv-col { height: calc(100vh - 190px); }
 }
 </style>
 
 <!-- Dialog-style offer builder -->
 <div class="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm" aria-hidden="true"></div>
 
-<div class="relative z-50 mx-auto w-full max-w-[1850px] px-3 sm:px-4">
+<div class="relative z-50 mx-auto w-full max-w-[2320px] px-1 sm:px-2">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
 
         <!-- Dialog header -->
@@ -72,7 +72,7 @@ $activeNav = 'lead-management';
             <div class="grid grid-cols-1 xl:grid-cols-[5fr_2fr] gap-8">
 
             <!-- ══ LEFT: Editable Invoice Preview ══════════════════════════════════ -->
-            <div class="inv-col flex flex-col" style="min-height:680px;">
+            <div class="inv-col flex flex-col" style="min-height:600px;">
                 <div class="mb-4 flex items-start justify-between flex-wrap gap-3">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800">Invoice Preview</h2>
@@ -92,6 +92,12 @@ $activeNav = 'lead-management';
                 </div>
                 <!-- Autosave status -->
                 <div id="invDraftStatus" class="hidden mb-2 text-[11px] text-slate-400"></div>
+
+                <!-- Xero connection notice -->
+                <div id="invXeroNotice" class="hidden mb-3 flex items-center justify-between gap-3 bg-sky-50 border border-sky-200 text-sky-800 rounded-lg px-3 py-2 text-sm">
+                    <span>Xero is not connected — accepted offers won't be sent to Xero automatically.</span>
+                    <a href="/xero" class="text-xs px-2.5 py-1 rounded-md border border-sky-300 text-sky-700 hover:bg-sky-100 transition whitespace-nowrap">Connect Xero</a>
+                </div>
 
                 <!-- Empty state (hidden - editor always visible) -->
                 <div id="invoiceEmpty" class="hidden flex-1 flex flex-col items-center justify-center bg-white rounded-xl border-2 border-dashed border-slate-200 text-slate-400">
@@ -156,10 +162,24 @@ $activeNav = 'lead-management';
                                            class="w-32 border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
                                 </div>
                                 <div class="flex items-center justify-end gap-2">
+                                    <span class="text-[10px] uppercase tracking-wide text-slate-400">Due Date</span>
+                                    <input id="invDueDate" type="date"
+                                           class="w-32 border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div class="flex items-center justify-end gap-2">
                                     <span class="text-[10px] uppercase tracking-wide text-slate-400">Currency</span>
                                     <select id="invCurrency"
                                             class="border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
                                         <option>EUR</option><option>USD</option><option>GBP</option><option>AUD</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center justify-end gap-2">
+                                    <span class="text-[10px] uppercase tracking-wide text-slate-400">Amounts are</span>
+                                    <select id="invLineAmountType" onchange="invRecalc()"
+                                            class="border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-0.5 text-right font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option value="Exclusive">Tax Exclusive</option>
+                                        <option value="Inclusive">Tax Inclusive</option>
+                                        <option value="NoTax">No Tax</option>
                                     </select>
                                 </div>
                                 <div class="flex items-center justify-end gap-2">
@@ -264,7 +284,7 @@ $activeNav = 'lead-management';
             </div>
 
             <!-- ══ RIGHT: AI Chat ════════════════════════════════════════════════════ -->
-            <div class="inv-col flex flex-col" style="min-height:680px;">
+            <div class="inv-col flex flex-col" style="min-height:600px;">
                 <div class="mb-4">
                     <h2 class="text-2xl font-bold text-slate-800">AI Invoice Assistant</h2>
                     <p class="text-slate-500 mt-1 text-sm">Describe what you need - AI will build the invoice from your product catalogue.</p>
@@ -315,6 +335,98 @@ const API_BASE = '<?= API_BASE ?>';
 const JWT      = <?= json_encode($_SESSION['jwt'] ?? '') ?>;
 const API_KEY  = '<?= API_KEY ?>';
 const ORIGIN   = '<?= ORIGIN ?>';
+
+// ── Xero organisation metadata (accounts / tax rates / currencies) ────────────
+// Populated from the connected Xero org so each invoice line carries a valid
+// account code + tax type and nothing is left blank when pushed to Xero.
+let xeroMeta = { connected:false, accounts:[], tax_rates:[], currencies:[], default_account_code:'200' };
+
+async function loadXeroMeta() {
+    try {
+        const res = await fetch(API_BASE + '/wl/admin/xero/meta', {
+            headers: { 'X-API-Key':API_KEY, 'Origin':ORIGIN, 'Authorization':'Bearer '+JWT },
+        });
+        if (res.ok) {
+            const j = await res.json();
+            xeroMeta.connected  = !!j.connected;
+            xeroMeta.accounts   = j.accounts   || [];
+            xeroMeta.tax_rates  = j.tax_rates  || [];
+            xeroMeta.currencies = j.currencies || [];
+            if (j.default_account_code) xeroMeta.default_account_code = j.default_account_code;
+        }
+    } catch (_) { /* offline / not connected — the editor still works */ }
+    applyXeroMetaToEditor();
+}
+
+function xeroAccountOptionsHtml(selected) {
+    const accts = xeroMeta.accounts || [];
+    if (!accts.length) return '<option value="">Default</option>';
+    let chosen = String(selected || '');
+    if (!chosen) {
+        const def = String(xeroMeta.default_account_code || '');
+        chosen = accts.some(a => String(a.code) === def) ? def : String(accts[0].code);
+    }
+    return accts.map(a => {
+        const sel = (String(a.code) === chosen) ? ' selected' : '';
+        return `<option value="${escHtml(a.code)}"${sel}>${escHtml(a.code)} · ${escHtml(a.name)}</option>`;
+    }).join('');
+}
+
+function xeroTaxOptionsHtml(selected) {
+    const sel0 = selected ? '' : ' selected';
+    let html = `<option value="" data-rate=""${sel0}>Account default</option>`;
+    (xeroMeta.tax_rates || []).forEach(t => {
+        const sel = (String(t.type) === String(selected)) ? ' selected' : '';
+        html += `<option value="${escHtml(t.type)}" data-rate="${t.rate}"${sel}>${escHtml(t.name)} (${t.rate}%)</option>`;
+    });
+    return html;
+}
+
+// Reflect the loaded Xero metadata into the currency picker, the per-line
+// Account/Tax selectors, and the "not connected" notice.
+function applyXeroMetaToEditor() {
+    if (xeroMeta.connected && xeroMeta.currencies.length) {
+        const sel  = document.getElementById('invCurrency');
+        const prev = sel.value;
+        sel.innerHTML = xeroMeta.currencies
+            .map(c => `<option value="${escHtml(c.code)}">${escHtml(c.code)}</option>`).join('');
+        if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+    }
+    const notice = document.getElementById('invXeroNotice');
+    if (notice) notice.classList.toggle('hidden', !!xeroMeta.connected);
+
+    document.querySelectorAll('#invItemsBody tr').forEach(tr => {
+        const wrap = tr.querySelector('.inv-xero-wrap');
+        if (!wrap) return;
+        wrap.classList.toggle('hidden', !xeroMeta.connected);
+        const acc  = tr.querySelector('.inv-account');
+        const taxT = tr.querySelector('.inv-taxtype');
+        if (acc)  acc.innerHTML  = xeroAccountOptionsHtml(acc.value);
+        if (taxT) taxT.innerHTML = xeroTaxOptionsHtml(taxT.value);
+    });
+    invRecalc();
+}
+
+// Tax mode (header) decides whether a line's tax % is added on top (Exclusive),
+// already included (Inclusive) or ignored (NoTax) — keeps the preview in step
+// with how Xero will compute the amount due.
+function invTaxMultiplier(taxPct) {
+    const mode = document.getElementById('invLineAmountType')?.value || 'Exclusive';
+    return mode === 'Exclusive' ? (1 + (taxPct / 100)) : 1;
+}
+
+// When a Xero tax type is picked, mirror its rate into the line's tax % so the
+// preview total matches the invoice Xero will generate.
+function invTaxTypeChange(sel) {
+    const tr = sel.closest('tr');
+    if (!tr) return;
+    const opt  = sel.options[sel.selectedIndex];
+    const rate = opt ? parseFloat(opt.getAttribute('data-rate')) : NaN;
+    const taxInput = tr.querySelector('.inv-tax');
+    if (taxInput && !isNaN(rate)) taxInput.value = Number(rate).toFixed(1);
+    invRecalc();
+    scheduleDraftSave();
+}
 
 // ── AI Chatbot ────────────────────────────────────────────────────────────────
 let chatHistory    = [];
@@ -513,15 +625,18 @@ function loadInvoiceIntoEditor(inv) {
     document.getElementById('invEstimateNo').value  = inv.estimate_no      || '';
     document.getElementById('invDate').value        = inv.invoice_date || inv.issue_date || new Date().toISOString().slice(0,10);
     document.getElementById('invExpiry').value      = inv.expiry_date      || '';
+    document.getElementById('invDueDate').value     = inv.due_date         || '';
     document.getElementById('invNotes').value       = inv.notes            || '';
     document.getElementById('invFreight').value     = (inv.freight ?? 0).toFixed(2);
     const cur = document.getElementById('invCurrency');
     [...cur.options].forEach(o => o.selected = o.value === (inv.currency || 'EUR'));
+    const _lat = document.getElementById('invLineAmountType');
+    if (_lat && inv.line_amount_type) _lat.value = inv.line_amount_type;
     if (inv.status) document.getElementById('invStatus').value = inv.status;
     updateInvStatusBadge();
     const tbody = document.getElementById('invItemsBody');
     tbody.innerHTML = '';
-    (inv.items || []).forEach(item => invAppendRow(item.name, item.qty, item.unit_price, item.discount_percentage ?? 0, item.discount_flat ?? 0, item.tax_pct ?? 0));
+    (inv.items || []).forEach(item => invAppendRow(item.name, item.qty, item.unit_price, item.discount_percentage ?? 0, item.discount_flat ?? 0, item.tax_pct ?? 0, item.non_discountable ?? false, item.account_code ?? '', item.tax_type ?? ''));
     invRecalc();
 }
 
@@ -707,9 +822,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set default expiry 15 days out
     const exp = new Date(); exp.setDate(exp.getDate() + 15);
     document.getElementById('invExpiry').value = exp.toISOString().slice(0,10);
+    // Default due date 14 days out (Xero invoices require a due date)
+    const _due = new Date(); _due.setDate(_due.getDate() + 14);
+    document.getElementById('invDueDate').value = _due.toISOString().slice(0,10);
     // Auto-assign estimate number
     document.getElementById('invEstimateNo').value = 'EST-' + Date.now().toString().slice(-4);
     invShowEditor();
+
+    // Load the connected Xero org's accounts / tax rates / currencies so the
+    // per-line Account + Tax selectors are populated before any rows render.
+    await loadXeroMeta();
 
     // When opened from a deal (Lead Management → New offer), link this offer to
     // that deal and prefill the customer details.
@@ -751,7 +873,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-function invAppendRow(name = '', qty = 1, price = 0, disc = 0, flat = 0, tax = 0, nonDisc = false) {
+function invAppendRow(name = '', qty = 1, price = 0, disc = 0, flat = 0, tax = 0, nonDisc = false, accountCode = '', taxType = '') {
     const tbody = document.getElementById('invItemsBody');
     const tr = document.createElement('tr');
     tr.className = 'border-b border-slate-100 group align-top';
@@ -791,6 +913,16 @@ function invAppendRow(name = '', qty = 1, price = 0, disc = 0, flat = 0, tax = 0
                 </div>
             </div>
             ${discToggle}
+            <div class="inv-xero-wrap ${xeroMeta.connected ? '' : 'hidden'} flex flex-wrap items-end gap-3 mt-1.5 pl-2">
+                <div>
+                    <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Account (Xero)</label>
+                    <select onchange="scheduleDraftSave()" class="inv-account border border-slate-200 rounded px-1.5 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[220px]">${xeroAccountOptionsHtml(accountCode)}</select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Tax (Xero)</label>
+                    <select onchange="invTaxTypeChange(this)" class="inv-taxtype border border-slate-200 rounded px-1.5 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[220px]">${xeroTaxOptionsHtml(taxType)}</select>
+                </div>
+            </div>
         </td>
         <td class="py-2 pr-3 w-24">
             <input type="number" value="${Number(price).toFixed(2)}" min="0" step="0.01" oninput="invRecalc()"
@@ -833,7 +965,7 @@ function invRecalc() {
         const flat  = parseFloat(tr.querySelector('.inv-flat')?.value)  || 0;
         const tax   = parseFloat(tr.querySelector('.inv-tax')?.value)   || 0;
         const base  = Math.max(0, (qty * price * (1 - disc / 100)) - flat);
-        const sub   = base * (1 + tax / 100);
+        const sub   = base * invTaxMultiplier(tax);
         subtotal   += sub;
         const subCell = tr.querySelector('.inv-sub');
         if (subCell) {
@@ -862,6 +994,9 @@ function clearInvoice() {
     document.getElementById('invDate').value        = new Date().toISOString().slice(0,10);
     const exp = new Date(); exp.setDate(exp.getDate() + 15);
     document.getElementById('invExpiry').value      = exp.toISOString().slice(0,10);
+    const due = new Date(); due.setDate(due.getDate() + 14);
+    document.getElementById('invDueDate').value     = due.toISOString().slice(0,10);
+    document.getElementById('invLineAmountType').value = 'Exclusive';
     document.getElementById('invNotes').value       = '';
     document.getElementById('invFreight').value     = '0.00';
     document.getElementById('invItemsBody').innerHTML = '';
@@ -1090,8 +1225,10 @@ function buildInvoiceFromEditor() {
         const flat  = parseFloat(tr.querySelector('.inv-flat')?.value)  || 0;
         const tax   = parseFloat(tr.querySelector('.inv-tax')?.value)   || 0;
         const base  = Math.max(0, (qty * price * (1 - disc / 100)) - flat);
-        const sub   = base * (1 + tax / 100);
-        items.push({ name, qty, unit_price: price, discount_percentage: disc, discount_flat: flat, tax_pct: tax, subtotal: sub });
+        const sub   = base * invTaxMultiplier(tax);
+        const account_code = tr.querySelector('.inv-account')?.value || '';
+        const tax_type     = tr.querySelector('.inv-taxtype')?.value || '';
+        items.push({ name, qty, unit_price: price, discount_percentage: disc, discount_flat: flat, tax_pct: tax, account_code, tax_type, subtotal: sub });
     });
     const freight  = parseFloat(document.getElementById('invFreight').value) || 0;
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
@@ -1103,7 +1240,9 @@ function buildInvoiceFromEditor() {
         estimate_no:      document.getElementById('invEstimateNo').value,
         issue_date:       document.getElementById('invDate').value,
         expiry_date:      document.getElementById('invExpiry').value,
+        due_date:         document.getElementById('invDueDate').value,
         currency:         document.getElementById('invCurrency').value,
+        line_amount_type: document.getElementById('invLineAmountType').value,
         status:           document.getElementById('invStatus').value,
         notes:            document.getElementById('invNotes').value,
         items, freight, subtotal,
@@ -1313,7 +1452,19 @@ async function saveEstimate() {
                 navigator.clipboard.writeText(shareUrl).catch(() => {});
             }
         } else {
-            alert('Estimate updated ✓');
+            let msg = 'Estimate updated ✓';
+            if (data.xero) {
+                if (data.xero.ok && data.xero.invoice_number) {
+                    msg += '\n\nXero invoice ' + data.xero.invoice_number + ' created and emailed.';
+                } else if (data.xero.reason === 'already_invoiced') {
+                    msg += '\n\nXero invoice ' + (data.xero.invoice_number || '') + ' already exists for this offer.';
+                } else if (data.xero.reason === 'not_connected') {
+                    msg += '\n\nNote: Xero is not connected, so no invoice was created.';
+                } else if (!data.xero.ok) {
+                    msg += '\n\nXero invoice could NOT be created: ' + (data.xero.message || data.xero.reason || 'unknown error');
+                }
+            }
+            alert(msg);
         }
     } catch (e) {
         alert('Network error: ' + e.message);

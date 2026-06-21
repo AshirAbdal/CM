@@ -111,15 +111,22 @@ $activeNav = 'leads';
 
     <!-- ── Lead qualification (customer-level summary) ───────── -->
     <?php
-    // Customer-level flags are DERIVED (MAX across this customer's submissions):
-    // once any enquiry is verified/qualified, the customer stays so — a new
-    // form submission never downgrades it. Per-enquiry state lives in each
-    // lead row below.
-    $isVerified  = !empty($lead['is_verified']);
-    $isQualified = !empty($lead['is_qualified']);
-    $subs        = $lead['notifications'] ?? [];
-    $pendingCnt  = 0;
+    // The customer-level verdict is LOCKED to this customer's FIRST completed
+    // enquiry survey: null = no survey completed yet, 1 = qualified, 0 = did not
+    // qualify. Re-sending a survey never changes it. Per-enquiry state lives in
+    // each lead row below. ("Disqualified" as a board classification is shown on
+    // Lead Management; here we simply explain the first-survey verdict.)
+    $isVerified   = !empty($lead['is_verified']);
+    $firstVerdict = $lead['first_survey_qualified'] ?? null; // null | 0 | 1
+    $subs         = $lead['notifications'] ?? [];
+    $pendingCnt   = 0;
     $completedCnt = 0;
+    // Earliest submission with a COMPLETED survey — the enquiry the customer-level
+    // verdict is based on, and the one we explain below.
+    $firstSurvey  = null;
+    foreach (array_reverse($subs) as $s) {
+        if (($s['survey']['status'] ?? '') === 'completed') { $firstSurvey = $s; break; }
+    }
     foreach ($subs as $s) {
         $st = $s['survey']['status'] ?? null;
         if ($st === 'completed') $completedCnt++;
@@ -134,10 +141,13 @@ $activeNav = 'leads';
                          <?= $isVerified ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-gray-50 text-gray-400 border-gray-200' ?>">
                 <?= $isVerified ? '&#9745;' : '&#9744;' ?> Verified
             </span>
-            <span class="text-sm font-medium px-3 py-1.5 rounded-lg border
-                         <?= $isQualified ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200' ?>">
-                <?= $isQualified ? '&#9873;' : '&#9872;' ?> Qualified
-            </span>
+            <?php if ($firstVerdict === 1): ?>
+            <span class="text-sm font-medium px-3 py-1.5 rounded-lg border bg-green-50 text-green-700 border-green-200">&#9745; Qualified</span>
+            <?php elseif ($firstVerdict === 0): ?>
+            <span class="text-sm font-medium px-3 py-1.5 rounded-lg border bg-purple-50 text-purple-700 border-purple-200">&#9888; Did not qualify</span>
+            <?php else: ?>
+            <span class="text-sm font-medium px-3 py-1.5 rounded-lg border bg-gray-50 text-gray-400 border-gray-200">&#9872; Qualification pending</span>
+            <?php endif; ?>
 
             <?php if ($completedCnt > 0): ?>
             <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200"><?= (int)$completedCnt ?> survey<?= $completedCnt > 1 ? 's' : '' ?> completed</span>
@@ -151,9 +161,71 @@ $activeNav = 'leads';
         </div>
 
         <p class="text-xs text-gray-400 mt-3">
-            Status is kept across all enquiries and never reset by a new form submission. Update a lead’s qualification from <a href="/lead-management" class="text-blue-600 hover:underline">Lead Management</a>.
+            The qualification verdict is locked to this customer’s first enquiry survey and never changes on later submissions. Work individual enquiries from <a href="/lead-management" class="text-blue-600 hover:underline">Lead Management</a>.
         </p>
     </div>
+
+    <!-- ── First enquiry survey (why qualified / not) ──────── -->
+    <?php if ($firstSurvey):
+        $fsQ    = $firstSurvey['survey']['questions'] ?? [];
+        $fsA    = $firstSurvey['survey']['answers']   ?? [];
+        $fsReason = trim((string) ($firstSurvey['survey']['reason'] ?? ''));
+        // Tri-state: prefer the explicit qualification_status from the API and
+        // fall back to the legacy is_qualified flag for older submissions.
+        //   qualified | not_qualified | pending
+        $fsStatus = $firstSurvey['survey']['qualification_status'] ?? null;
+        if ($fsStatus === null || $fsStatus === 'awaiting_response') {
+            $iq = $firstSurvey['is_qualified'] ?? null;
+            $fsStatus = $iq === null ? 'pending' : ((int) $iq === 1 ? 'qualified' : 'not_qualified');
+        }
+        $fsWhen = $firstSurvey['survey']['completed_at'] ?? ($firstSurvey['created_at'] ?? null);
+    ?>
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">First Enquiry Survey</p>
+            <?php if ($fsStatus === 'qualified'): ?>
+            <span class="text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">&#9745; Qualified on first reply</span>
+            <?php elseif ($fsStatus === 'not_qualified'): ?>
+            <span class="text-[11px] font-semibold bg-purple-50 text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full">&#9888; Did not qualify on first reply</span>
+            <?php else: ?>
+            <span class="text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">&#9872; Qualification pending</span>
+            <?php endif; ?>
+        </div>
+        <p class="text-xs text-gray-400 mb-4">
+            <?= $fsStatus === 'qualified'
+                ? 'Met the qualifying criteria on the first survey, so this customer is marked Qualified.'
+                : ($fsStatus === 'not_qualified'
+                    ? 'Did not meet the qualifying criteria on the first survey, so this customer was not qualified.'
+                    : 'The lead answered the first survey, but an automated qualification verdict has not been recorded yet.') ?>
+            <?php if ($fsWhen): ?><span class="text-gray-300">· <?= e(substr((string) $fsWhen, 0, 10)) ?></span><?php endif; ?>
+        </p>
+        <?php if ($fsReason !== ''): ?>
+        <div class="mb-4 rounded-lg border <?= $fsStatus === 'pending' ? 'border-amber-200 bg-amber-50' : 'border-blue-200 bg-blue-50' ?> px-3 py-2">
+            <p class="text-[11px] uppercase tracking-wide <?= $fsStatus === 'pending' ? 'text-amber-500' : 'text-blue-500' ?> font-semibold"><?= $fsStatus === 'pending' ? 'Why pending' : 'AI Reason' ?></p>
+            <p class="text-sm <?= $fsStatus === 'pending' ? 'text-amber-900' : 'text-blue-900' ?> mt-0.5"><?= e($fsReason) ?></p>
+        </div>
+        <?php endif; ?>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+            <?php if (is_array($fsQ) && $fsQ): foreach ($fsQ as $q):
+                $key = $q['key'] ?? '';
+                $ans = is_array($fsA) ? ($fsA[$key] ?? '') : '';
+                if (is_array($ans)) $ans = implode(', ', $ans);
+            ?>
+            <div>
+                <p class="text-[11px] uppercase tracking-wide text-gray-400"><?= e($q['label'] ?? $key) ?></p>
+                <p class="text-sm text-gray-700 mt-0.5"><?= e((string) $ans) ?: '<span class="text-gray-300">—</span>' ?></p>
+            </div>
+            <?php endforeach; elseif (is_array($fsA)): foreach ($fsA as $k => $v):
+                if (is_array($v)) $v = implode(', ', $v);
+            ?>
+            <div>
+                <p class="text-[11px] uppercase tracking-wide text-gray-400"><?= e((string) $k) ?></p>
+                <p class="text-sm text-gray-700 mt-0.5"><?= e((string) $v) ?></p>
+            </div>
+            <?php endforeach; endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- ── Apollo.io data (collapsible) ──────────────────────── -->
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -348,9 +420,14 @@ $activeNav = 'leads';
         <div class="space-y-3">
             <?php foreach ($lead['notifications'] as $n):
                 $nVerified  = !empty($n['is_verified']);
-                $nQualified = !empty($n['is_qualified']);
                 $nSurvey    = $n['survey'] ?? null;
                 $nState     = $nSurvey['status'] ?? null;
+                // Tri-state qualification badge (qualified / not_qualified / pending).
+                $nQualStatus = $nSurvey['qualification_status'] ?? null;
+                if ($nQualStatus === null && $nState === 'completed') {
+                    $nQualStatus = $n['is_qualified'] === null ? 'pending'
+                        : ((int) $n['is_qualified'] === 1 ? 'qualified' : 'not_qualified');
+                }
                 $sid        = (int) $n['submission_id'];
             ?>
             <a href="/deal?CR_id=<?= $CR_id ?>&submission_id=<?= $sid ?>"
@@ -366,8 +443,12 @@ $activeNav = 'leads';
                         <?php if ($nVerified): ?>
                         <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">&#9745; Verified</span>
                         <?php endif; ?>
-                        <?php if ($nQualified): ?>
+                        <?php if ($nQualStatus === 'qualified'): ?>
                         <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">&#9873; Qualified</span>
+                        <?php elseif ($nQualStatus === 'not_qualified'): ?>
+                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-200">Not qualified</span>
+                        <?php elseif ($nQualStatus === 'pending'): ?>
+                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">&#9872; Qualifying…</span>
                         <?php endif; ?>
                         <?php if ($nState === 'completed'): ?>
                         <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200">Survey done</span>

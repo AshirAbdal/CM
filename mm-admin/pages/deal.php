@@ -57,14 +57,18 @@ $STAGE_LABEL = [
 ];
 
 // Which tools each stage exposes (conversation / survey / offers).
+//   • 'new' is the qualification stage — talk to the lead and send the survey.
+//   • 'awaiting_info' and 'qualified' are communication stages: the admin
+//     chases the lead by email (conversation) and can make an offer (offers),
+//     then moves the deal to the next step manually via the stage stepper.
 $STAGE_TOOLS = [
-    'new'           => ['conversation'],
-    'awaiting_info' => ['conversation', 'survey'],
-    'qualified'     => ['conversation', 'survey'],
-    'offer_1'       => ['conversation'],
-    'offer_2'       => ['conversation'],
-    'long_term'     => ['conversation'],
-    'won'           => ['conversation'],
+    'new'           => ['conversation', 'survey'],
+    'awaiting_info' => ['conversation', 'offers'],
+    'qualified'     => ['conversation', 'offers'],
+    'offer_1'       => ['conversation', 'offers'],
+    'offer_2'       => ['conversation', 'offers'],
+    'long_term'     => ['conversation', 'offers'],
+    'won'           => ['conversation', 'offers'],
     'dead'          => ['conversation'],
 ];
 
@@ -286,22 +290,59 @@ const _submissionId = <?= $wantSid ?>;
         </div>
         <?php endif; ?>
 
-        <!-- Stage bar (progress + selector in one) -->
-        <div class="flex w-full select-none">
-            <?php
-            $first3 = ['new', 'awaiting_info', 'qualified'];
-            foreach ($STAGES as $i => $st):
-                $auto = in_array($st, $first3, true);
-                if ($i < $curIdx)        { $seg = 'bg-green-500 text-white border-green-500'; }
-                elseif ($i === $curIdx)  { $seg = 'bg-blue-600 text-white border-blue-600'; }
-                else                     { $seg = 'bg-white text-gray-500 border-gray-200'; }
-            ?>
-            <button type="button" data-stageseg="<?= $st ?>" onclick="selectStage('<?= $st ?>')"
-                    title="<?= htmlspecialchars($STAGE_LABEL[$st]) ?><?= $st === $stage ? ' (current stage)' : '' ?>"
-                    class="stage-seg relative flex-1 min-w-0 px-2 py-2.5 text-[11px] font-semibold text-center border first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0 transition hover:brightness-95 <?= $seg ?>">
-                <span class="block truncate"><?= htmlspecialchars($STAGE_LABEL[$st]) ?><?= $auto ? ' &#9881;' : '' ?></span>
-            </button>
-            <?php endforeach; ?>
+        <!-- Stage progress bar (progress + selector in one) -->
+        <?php
+        $maxIdx  = count($STAGES) - 1;
+        $pct     = ($isDead || $curIdx <= 0) ? 0 : (int) round($curIdx / $maxIdx * 100);
+        // No "automatic" stages anymore — qualification is not a stage, so no
+        // node carries the auto (gear) marker.
+        $first3  = [];
+        ?>
+        <div class="select-none">
+            <!-- Header: current stage + % complete -->
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-semibold <?= $isDead ? 'text-red-600' : 'text-gray-800' ?>">
+                    <?= $isDead ? '&#9760; Dead deal' : htmlspecialchars($STAGE_LABEL[$stage]) ?>
+                </p>
+                <p class="text-xs font-medium <?= $isDead ? 'text-red-400' : 'text-gray-400' ?>">
+                    <?= $isDead ? 'Out of pipeline' : ($isWon ? 'Completed &#127881;' : $pct . '% complete') ?>
+                </p>
+            </div>
+
+            <!-- Node stepper with connecting progress track -->
+            <div class="relative pt-1">
+                <!-- background track (inset to align with node centres) -->
+                <div class="absolute top-[19px] left-[18px] right-[18px] h-1.5 bg-gray-200 rounded-full"></div>
+                <!-- filled progress -->
+                <div class="absolute top-[19px] left-[18px] h-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-500"
+                     style="width: calc((100% - 36px) * <?= max(0, $curIdx) ?> / <?= $maxIdx ?>);"></div>
+
+                <!-- nodes -->
+                <div class="relative flex justify-between">
+                    <?php foreach ($STAGES as $i => $st):
+                        $auto = in_array($st, $first3, true);
+                        if ($i < $curIdx) {
+                            $circle = 'bg-green-500 border-green-500 text-white';
+                            $inner  = '&#10003;'; // check
+                        } elseif ($i === $curIdx) {
+                            $circle = 'bg-blue-600 border-blue-600 text-white ring-4 ring-blue-100';
+                            $inner  = (string) ($i + 1);
+                        } else {
+                            $circle = 'bg-white border-gray-300 text-gray-400';
+                            $inner  = (string) ($i + 1);
+                        }
+                    ?>
+                    <button type="button" data-stageseg="<?= $st ?>" onclick="selectStage('<?= $st ?>')"
+                            title="<?= htmlspecialchars($STAGE_LABEL[$st]) ?><?= $st === $stage ? ' (current stage)' : '' ?>"
+                            class="stage-node group flex flex-col items-center gap-1.5 min-w-0 flex-1 px-0.5">
+                        <span class="stage-node-circle relative z-10 grid place-items-center w-9 h-9 rounded-full border-2 text-xs font-bold transition <?= $circle ?>"><?= $inner ?></span>
+                        <span class="block w-full text-center text-[10px] leading-tight font-medium <?= $i === $curIdx ? 'text-blue-700' : 'text-gray-500' ?> truncate">
+                            <?= htmlspecialchars($STAGE_LABEL[$st]) ?><?= $auto ? ' &#9881;' : '' ?>
+                        </span>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
 
         <!-- Selected-stage action bar -->
@@ -368,6 +409,76 @@ const _submissionId = <?= $wantSid ?>;
                 </div>
             </div>
 
+            <!-- Offers & invoices -->
+            <div data-tool="offers" class="deal-tool border border-gray-100 rounded-lg p-4">
+                <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">&#128179; Offers &amp; invoices</h3>
+                        <p class="text-xs text-gray-400">Each offer you sent and its Xero invoice. Invoices are raised automatically in Xero when the customer accepts.</p>
+                    </div>
+                    <a href="/xero" class="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 transition">Xero settings</a>
+                </div>
+                <?php if (empty($offers)): ?>
+                <p class="text-sm text-gray-400 text-center py-6">No offers sent yet. Use &ldquo;Make offer&rdquo; in the conversation to send one.</p>
+                <?php else: ?>
+                <div class="space-y-3">
+                    <?php foreach ($offers as $o):
+                        $oStatus  = strtolower((string) ($o['status'] ?? ''));
+                        $statusUi = match ($oStatus) {
+                            'accepted' => ['Accepted', 'bg-green-50 text-green-700 border-green-200'],
+                            'rejected' => ['Rejected', 'bg-red-50 text-red-700 border-red-200'],
+                            'sent'     => ['Sent', 'bg-blue-50 text-blue-700 border-blue-200'],
+                            'expired'  => ['Expired', 'bg-gray-100 text-gray-600 border-gray-200'],
+                            'draft'    => ['Draft', 'bg-gray-100 text-gray-600 border-gray-200'],
+                            default    => [ucfirst($oStatus ?: 'Unknown'), 'bg-gray-100 text-gray-600 border-gray-200'],
+                        };
+                        $xInvNo  = trim((string) ($o['xero_invoice_number'] ?? ''));
+                        $xStatus = strtolower((string) ($o['xero_status'] ?? ''));
+                        $xUrl    = trim((string) ($o['xero_online_url'] ?? ''));
+                        $curr    = (string) ($o['currency'] ?? '');
+                        $total   = number_format((float) ($o['total'] ?? 0), 2);
+                    ?>
+                    <div class="rounded-lg border border-gray-100 bg-gray-50/60 px-4 py-3">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-sm font-semibold text-gray-800"><?= htmlspecialchars((string) ($o['estimate_no'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full border <?= $statusUi[1] ?>"><?= htmlspecialchars($statusUi[0], ENT_QUOTES, 'UTF-8') ?></span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700"><?= htmlspecialchars($curr, ENT_QUOTES, 'UTF-8') ?> <?= $total ?></span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3 flex-wrap mt-2">
+                            <?php if (!empty($o['token'])): ?>
+                            <a href="/estimate/<?= htmlspecialchars($o['token'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" class="text-xs font-medium text-indigo-600 hover:underline">View estimate &rarr;</a>
+                            <?php else: ?>
+                            <span></span>
+                            <?php endif; ?>
+                            <div class="text-right">
+                                <?php if ($xInvNo !== ''): ?>
+                                    <div class="flex items-center gap-2 justify-end">
+                                        <span class="text-[11px] text-gray-500">Xero invoice</span>
+                                        <span class="text-xs font-semibold text-gray-800"><?= htmlspecialchars($xInvNo, ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php if ($xStatus !== ''): ?>
+                                        <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200"><?= htmlspecialchars($xStatus, ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if ($xUrl !== ''): ?>
+                                    <a href="<?= htmlspecialchars($xUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="text-xs font-medium text-emerald-700 hover:underline">View invoice in Xero &rarr;</a>
+                                    <?php endif; ?>
+                                <?php elseif ($xStatus === 'failed'): ?>
+                                    <span class="text-xs text-red-600">&#9888; Xero sync failed</span>
+                                <?php elseif ($xStatus === 'skipped'): ?>
+                                    <span class="text-[11px] text-gray-400">Xero wasn&rsquo;t connected at acceptance</span>
+                                <?php elseif ($oStatus === 'accepted'): ?>
+                                    <span class="text-[11px] text-gray-400">Invoice pending&hellip;</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+
             <!-- Survey responses -->
             <div data-tool="survey" class="deal-tool border border-gray-100 rounded-lg p-4">
                 <button type="button"
@@ -377,6 +488,46 @@ const _submissionId = <?= $wantSid ?>;
                     <svg class="survey-chev w-5 h-5 text-gray-300 transition-transform shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div class="hidden mt-3">
+                <?php
+                    $sStatus = $survey['status'] ?? null;
+                    // Tri-state per-deal verdict: prefer the explicit
+                    // qualification_status from the API, fall back to is_qualified.
+                    $sQualSt = $survey['qualification_status'] ?? null;
+                    if ($sQualSt === null && $sStatus === 'completed') {
+                        $iq = $deal['is_qualified'] ?? null;
+                        $sQualSt = $iq === null ? 'pending'
+                            : ((int) $iq === 1 ? 'qualified' : 'not_qualified');
+                    }
+                    $sReason = trim((string) ($survey['reason'] ?? ''));
+                ?>
+                <!-- Per-deal survey verdict + resend control. The verdict here is
+                     for THIS deal; the customer-level verdict (locked to the first
+                     survey) is shown on the customer profile. -->
+                <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                    <div>
+                        <?php if ($sQualSt === 'qualified'): ?>
+                        <span class="text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">&#9745; Qualified</span>
+                        <?php elseif ($sQualSt === 'not_qualified'): ?>
+                        <span class="text-[11px] font-semibold bg-purple-50 text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full">&#9888; Did not qualify</span>
+                        <?php elseif ($sQualSt === 'pending'): ?>
+                        <span class="text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">&#9872; Qualification pending</span>
+                        <?php elseif ($sStatus === 'pending'): ?>
+                        <span class="text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">&#9993; Awaiting reply</span>
+                        <?php else: ?>
+                        <span class="text-[11px] font-semibold bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full">Not sent yet</span>
+                        <?php endif; ?>
+                    </div>
+                    <button type="button" id="resend-survey-btn" onclick="resendSurvey()"
+                            class="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-colors">
+                        &#8635; <?= $sStatus ? 'Resend survey' : 'Send survey' ?>
+                    </button>
+                </div>
+                <?php if ($sReason !== '' && in_array($sQualSt, ['qualified', 'not_qualified', 'pending'], true)): ?>
+                <div class="mb-3 rounded-lg border <?= $sQualSt === 'pending' ? 'border-amber-200 bg-amber-50' : 'border-blue-200 bg-blue-50' ?> px-3 py-2">
+                    <p class="text-[11px] uppercase tracking-wide <?= $sQualSt === 'pending' ? 'text-amber-500' : 'text-blue-500' ?> font-semibold"><?= $sQualSt === 'pending' ? 'Why pending' : 'AI Reason' ?></p>
+                    <p class="text-sm <?= $sQualSt === 'pending' ? 'text-amber-900' : 'text-blue-900' ?> mt-0.5"><?= htmlspecialchars($sReason, ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <?php endif; ?>
                 <?php if (!$survey || ($survey['status'] ?? '') !== 'completed'): ?>
                 <p class="text-sm text-gray-400"><?= $survey && ($survey['status'] ?? '') === 'pending' ? 'Survey sent — awaiting the lead’s reply.' : 'No survey completed for this deal.' ?></p>
                 <?php else:
@@ -422,13 +573,16 @@ let _selectedStage  = _currentStage;
 function selectStage(stage) {
     _selectedStage = stage;
 
-    // Mark the selected segment without disturbing its progress colour.
-    document.querySelectorAll('.stage-seg').forEach(function (b) {
+    // Highlight the previewed node without disturbing its progress colour.
+    document.querySelectorAll('.stage-node').forEach(function (b) {
         const active = b.dataset.stageseg === stage;
-        b.classList.toggle('ring-2', active);
-        b.classList.toggle('ring-inset', active);
-        b.classList.toggle('ring-blue-800', active);
-        b.classList.toggle('z-10', active);
+        const circle = b.querySelector('.stage-node-circle');
+        if (circle) {
+            circle.classList.toggle('outline', active);
+            circle.classList.toggle('outline-2', active);
+            circle.classList.toggle('outline-offset-2', active);
+            circle.classList.toggle('outline-blue-500', active);
+        }
     });
 
     // Reveal only the tools that belong to this stage
@@ -486,6 +640,32 @@ async function moveStage(stage, reason) {
         if (!res.ok || !data.success) { alert('Could not move stage: ' + (data.error || 'Unknown error')); return; }
         location.reload();
     } catch (e) { alert('Network error: ' + e.message); }
+}
+
+// Resend (or first-send) the qualifying survey for this deal. Available while
+// the deal is in 'new' because qualification is not a stage. The customer-level
+// verdict is locked to the FIRST completed survey, so resending never alters the
+// customer record — it only refreshes this deal's survey.
+async function resendSurvey() {
+    const btn = document.getElementById('resend-survey-btn');
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+        const res = await fetch(_apiBase + '/wl/admin/customer/survey/send', {
+            method: 'POST', headers: _headers(),
+            body: JSON.stringify({ submission_id: _submissionId }),
+        });
+        if (res.status === 401) { window.location = '/login'; return; }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) { alert('Could not send survey: ' + (data.error || 'Unknown error')); return; }
+        alert('Survey sent to ' + (data.sent_to || 'the lead') + '.');
+        location.reload();
+    } catch (e) {
+        alert('Network error: ' + e.message);
+    } finally {
+        btn.disabled = false; btn.textContent = orig;
+    }
 }
 
 function markDead() {

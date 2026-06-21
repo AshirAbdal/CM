@@ -8,6 +8,11 @@ $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'])
 define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
 define('API_KEY',  'mq-prod-public-key-001');
 define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
+// The frontend (website) runs on a SEPARATE server, so image changes are pushed
+// over HTTP to its /api/site-images endpoint instead of a shared disk path.
+// IMG_SYNC_SECRET must match the value on the frontend (set both via env in prod).
+define('FRONTEND_BASE',   $_is_local ? 'http://localhost:8001' : 'https://website.majesticmarquees.clickdigim.com');
+define('IMG_SYNC_SECRET', getenv('IMG_SYNC_SECRET') ?: 'mq-img-sync-3f8c1d9a7b2e4056c1a8f3d6e90b2c4d');
 unset($_is_local);
 
 $ch = curl_init(API_BASE . '/wl/admin/leads');
@@ -37,30 +42,66 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Absolute path to the frontend's public/assets directory.
-//
-// The admin and the frontend are deployed as SEPARATE sites with different
-// document roots, so a fixed relative path can't work everywhere:
-//   • Local dev:  …/CM/mm-frontend/public/assets/        (sibling folders)
-//   • Server:     …/website.majesticmarquees…/public/assets/  (sibling subdomains)
-//
-// Resolve it by trying known locations and using the first that exists.
-// An explicit FRONTEND_ASSETS_DIR env var always wins (set it in the server
-// config if the host layout differs from the assumptions below).
-$assetCandidates = array_filter([
-    getenv('FRONTEND_ASSETS_DIR') ?: null,                                      // explicit override
-    dirname(__DIR__, 2) . '/mm-frontend/public/assets/',                        // local dev (sibling folders)
-    dirname(__DIR__, 2) . '/website.majesticmarquees.clickdigim.com/public/assets/', // server (sibling subdomains)
-    dirname(__DIR__, 2) . '/majesticmarquees.com/public/assets/',               // server (production domain)
-]);
+// ── Frontend image sync over HTTP ─────────────────────────────────────────
+// The website's images live on a DIFFERENT server. We manage them through its
+// /api/site-images endpoint: GET for current metadata, POST to replace one.
 
-$targetDir = null;
-foreach ($assetCandidates as $candidate) {
-    if (is_dir($candidate)) { $targetDir = rtrim($candidate, '/') . '/'; break; }
+/** Web URL the browser uses to preview a managed asset (with cache-buster). */
+function frontend_asset_url(string $relFile, ?int $version): string {
+    if (strncmp($relFile, '../', 3) === 0) {
+        $url = FRONTEND_BASE . '/' . ltrim(substr($relFile, 3), '/');   // ../logo.png → /logo.png
+    } else {
+        $url = FRONTEND_BASE . '/assets/' . ltrim($relFile, '/');       // images/x.jpg → /assets/images/x.jpg
+    }
+    return $version ? $url . '?v=' . $version : $url;
 }
-// Fall back to the local path so error messages stay sensible if none exist yet.
-if ($targetDir === null) {
-    $targetDir = dirname(__DIR__, 2) . '/mm-frontend/public/assets/';
+
+/** Fetch size + mtime for every managed asset from the frontend. */
+function fetch_image_meta(): array {
+    $ch = curl_init(FRONTEND_BASE . '/api/site-images');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['X-Img-Secret: ' . IMG_SYNC_SECRET],
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $res  = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code !== 200) { return ['ok' => false, 'files' => []]; }
+    $json  = json_decode((string) $res, true);
+    $files = (is_array($json) && isset($json['files']) && is_array($json['files'])) ? $json['files'] : [];
+    return ['ok' => true, 'files' => $files];
+}
+
+/** Push one replacement image to the frontend over HTTP (multipart). */
+function upload_image_to_frontend(string $relPath, string $tmpFile, string $mime, string $origName): array {
+    if (!class_exists('CURLFile')) {
+        return ['ok' => false, 'error' => 'Server is missing CURLFile support.'];
+    }
+    $safeName = preg_replace('/[^A-Za-z0-9._-]/', '_', $origName) ?: 'upload';
+    $ch = curl_init(FRONTEND_BASE . '/api/site-images');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => ['X-Img-Secret: ' . IMG_SYNC_SECRET],
+        CURLOPT_POSTFIELDS     => [
+            'path' => $relPath,
+            'file' => new CURLFile($tmpFile, $mime, $safeName),
+        ],
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $res  = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = curl_error($ch);
+    curl_close($ch);
+    if ($res === false) { return ['ok' => false, 'error' => 'Network error: ' . $err]; }
+    $json = json_decode((string) $res, true);
+    if ($code === 200 && is_array($json) && !empty($json['ok'])) { return ['ok' => true]; }
+    return ['ok' => false, 'error' => (is_array($json) && isset($json['error'])) ? $json['error'] : ('HTTP ' . $code)];
 }
 
 // Build full config - grouped by section
@@ -241,17 +282,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
             $message     = 'Rejected: only JPEG, PNG, WebP, GIF and AVIF are allowed.';
             $messageType = 'error';
         } else {
-            $targetPath = realpath($targetDir) . '/' . $images_config[$key]['file'];
-
-            // Prevent path traversal - resolved target must stay inside $targetDir
-            if (strpos(realpath(dirname($targetPath)) . '/', realpath($targetDir) . '/') !== 0) {
-                $message     = 'Security error: path traversal detected.';
-                $messageType = 'error';
-            } elseif (move_uploaded_file($_FILES['new_image']['tmp_name'], $targetPath)) {
+            // Push the replacement to the frontend server over HTTP.
+            $result = upload_image_to_frontend(
+                $images_config[$key]['file'],
+                $_FILES['new_image']['tmp_name'],
+                (string) $mimeType,
+                (string) ($_FILES['new_image']['name'] ?? 'upload')
+            );
+            if ($result['ok']) {
                 $message     = 'Successfully replaced: ' . e($images_config[$key]['title']);
                 $messageType = 'success';
             } else {
-                $message     = 'Write failed - check folder permissions on mm-frontend/public/assets/';
+                $message     = 'Upload failed: ' . e($result['error']);
                 $messageType = 'error';
             }
         }
@@ -263,6 +305,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
+
+// Current image metadata from the frontend (size + mtime per slot).
+$metaResult = fetch_image_meta();
+$imageMeta  = $metaResult['files'];
+$metaOk     = $metaResult['ok'];
 
 $layout    = 'app';
 $activeNav = 'images';
@@ -277,7 +324,7 @@ $activeNav = 'images';
     <div>
         <h2 class="text-xl font-semibold text-gray-800">Image Manager</h2>
         <p class="text-sm text-gray-500 mt-1">
-            Upload a replacement image to instantly overwrite the live file.
+            Upload a replacement image and it is pushed straight to the live website over the API.
             The current image is always shown - if it looks like the wrong picture, just replace it.
         </p>
         <div class="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-800 space-y-1">
@@ -300,6 +347,12 @@ $activeNav = 'images';
     </div>
     <?php endif; ?>
 
+    <?php if (!$metaOk): ?>
+    <div class="rounded-lg border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+        Couldn't reach the website server to load the current images. You can still upload - changes apply once the site is reachable. Refresh to retry.
+    </div>
+    <?php endif; ?>
+
     <?php foreach ($sections as $sectionName => $entries): ?>
     <section>
         <h3 class="text-sm font-semibold uppercase tracking-widest text-gray-500 border-b border-gray-200 pb-2 mb-4">
@@ -307,20 +360,13 @@ $activeNav = 'images';
         </h3>
         <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
             <?php foreach ($entries as $key => $cfg):
-                $fullPath = realpath($targetDir) . '/' . $cfg['file'];
-                $exists   = file_exists($fullPath);
-
-                // Build base64 preview - read directly from disk so it works
-                // regardless of which port the admin is running on
-                $previewSrc = null;
-                if ($exists) {
-                    $raw  = file_get_contents($fullPath);
-                    $mime = mime_content_type($fullPath) ?: 'image/jpeg';
-                    $previewSrc = 'data:' . $mime . ';base64,' . base64_encode($raw);
-                }
-
-                $mtime  = $exists ? date('d M Y H:i', filemtime($fullPath)) : null;
-                $size   = $exists ? round(filesize($fullPath) / 1024) . ' KB' : null;
+                $meta       = $imageMeta[$cfg['file']] ?? null;
+                $exists     = $meta !== null;
+                $verAt      = $exists ? (int) ($meta['updated_at'] ?? 0) : null;
+                // Preview straight from the live website (cross-origin <img> is fine).
+                $previewSrc = $exists ? e(frontend_asset_url($cfg['file'], $verAt)) : null;
+                $mtime      = $exists ? date('d M Y H:i', $verAt) : null;
+                $size       = $exists ? round(((int) ($meta['bytes'] ?? 0)) / 1024) . ' KB' : null;
             ?>
             <div class="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
 

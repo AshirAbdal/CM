@@ -5,6 +5,7 @@ $layout = $layout ?? 'app';
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="generator" content="clickdigim v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageMeta['title'] ?? 'Admin | Majestic Marquees') ?></title>
     <link rel="icon" href="data:,">
@@ -75,21 +76,9 @@ $layout = $layout ?? 'app';
                     </a>
                 </li>
                 <li>
-                    <a href="/images" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'images' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
-                        <span class="text-base leading-none">&#9654;</span>
-                        Image Manager
-                    </a>
-                </li>
-                <li>
                     <a href="/inventory" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'inventory' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
                         <span class="text-base leading-none">&#9707;</span>
                         Inventory
-                    </a>
-                </li>
-                <li>
-                    <a href="/survey-questions" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'survey-questions' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
-                        <span class="text-base leading-none">&#9783;</span>
-                        Survey Questions
                     </a>
                 </li>
                 <li>
@@ -97,6 +86,49 @@ $layout = $layout ?? 'app';
                         <span class="text-base leading-none">&#9889;</span>
                         Lead Management
                     </a>
+                </li>
+
+                <?php
+                    // "Settings" groups the configuration pages (survey + AI
+                    // context, image manager, Xero). It is a pure toggle (no
+                    // page of its own) and auto-expands when one of its children
+                    // is the active page.
+                    $settingsNavs = ['survey-questions', 'images', 'xero'];
+                    $settingsOpen = in_array($activeNav ?? '', $settingsNavs, true);
+                ?>
+                <li>
+                    <button type="button"
+                            id="settings-toggle"
+                            data-submenu-toggle="settings"
+                            aria-controls="settings-submenu"
+                            aria-expanded="<?= $settingsOpen ? 'true' : 'false' ?>"
+                            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= $settingsOpen ? 'text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                        <span class="text-base leading-none shrink-0">&#9881;</span>
+                        <span class="flex-1 text-left">Settings</span>
+                        <svg id="settings-chevron" class="w-4 h-4 shrink-0 transition-transform duration-200 <?= $settingsOpen ? 'rotate-180' : '' ?>" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                    <ul id="settings-submenu" class="mt-0.5 space-y-0.5 pl-3 <?= $settingsOpen ? '' : 'hidden' ?>">
+                        <li>
+                            <a href="/survey-questions" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'survey-questions' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                                <span class="text-base leading-none shrink-0">&#9783;</span>
+                                Survey &amp; AI Context
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/images" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'images' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                                <span class="text-base leading-none shrink-0">&#9654;</span>
+                                Image Manager
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/xero" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'xero' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                                <span class="text-base leading-none shrink-0">&#128179;</span>
+                                Xero Integration
+                            </a>
+                        </li>
+                    </ul>
                 </li>
             </ul>
         </nav>
@@ -298,6 +330,22 @@ function closeSidebar() {
     document.getElementById('sidebar-overlay').classList.add('hidden');
     document.body.style.overflow = '';
 }
+</script>
+
+<script>
+// Collapsible sidebar groups (e.g. Settings): toggle the submenu + rotate chevron.
+document.querySelectorAll('[data-submenu-toggle]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var id      = btn.getAttribute('data-submenu-toggle');
+        var submenu = document.getElementById(id + '-submenu');
+        var chevron = document.getElementById(id + '-chevron');
+        if (!submenu) return;
+        submenu.classList.toggle('hidden');
+        var expanded = !submenu.classList.contains('hidden');
+        if (chevron) chevron.classList.toggle('rotate-180', expanded);
+        btn.setAttribute('aria-expanded', String(expanded));
+    });
+});
 </script>
 </body>
 <?php endif; ?>

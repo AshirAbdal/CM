@@ -49,6 +49,13 @@ if (!in_array($host, $allowedHosts, true)) {
 $path         = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/') ?: '/';
 $isSpaRequest = isset($_SERVER['HTTP_X_SPA_REQUEST']);
 
+// Site-image sync API — the admin (on a separate server) uploads/queries
+// replacement images here. Returns JSON and exits; never hits the page router.
+if ($path === '/api/site-images') {
+    require __DIR__ . '/../lib/site_images.php';
+    exit;
+}
+
 // Redirect /home → / (301 permanent)
 if ($path === '/home') {
     header('Location: /', true, 301);

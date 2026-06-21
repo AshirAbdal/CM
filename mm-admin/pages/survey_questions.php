@@ -22,7 +22,7 @@ $activeNav = 'survey-questions';
     <div class="flex items-start justify-between flex-wrap gap-4">
         <div>
             <h2 class="text-xl font-semibold text-gray-800">Survey Questions</h2>
-            <p class="text-sm text-gray-500 mt-1">These questions are emailed to every new lead. Answering them all marks a lead as qualified.</p>
+            <p class="text-sm text-gray-500 mt-1">These questions are emailed to every new lead. Qualification is decided by AI using your context and the submitted answers.</p>
         </div>
         <button type="button" id="add-question-btn"
                 class="text-sm font-medium px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors">
@@ -32,6 +32,14 @@ $activeNav = 'survey-questions';
 
     <div id="loading" class="text-center text-gray-400 py-16">Loading…</div>
     <div id="error"   class="hidden text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg p-4"></div>
+
+    <div id="context-wrap" class="hidden bg-white rounded-xl border border-gray-200 p-5 space-y-2">
+        <label for="survey-context" class="block text-sm font-medium text-gray-700">Qualification Context</label>
+        <p class="text-xs text-gray-500">This context is sent to AI on every survey submission to decide if the customer/lead is qualified.</p>
+        <textarea id="survey-context" rows="5"
+                  placeholder="Example: Qualified only if budget is above X and decision maker can commit within Y timeline..."
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-400"></textarea>
+    </div>
 
     <div id="questions" class="hidden space-y-4"></div>
 
@@ -51,6 +59,7 @@ $activeNav = 'survey-questions';
     const JWT      = '<?= e($_SESSION['jwt'] ?? '') ?>';
 
     let questions = [];
+    let contextText = '';
 
     function headers() {
         return {
@@ -75,6 +84,7 @@ $activeNav = 'survey-questions';
             if (res.status === 401) { window.location.href = '/login'; return; }
             if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load questions');
             questions = Array.isArray(data.questions) ? data.questions : [];
+            contextText = String(data.context || '');
             render();
         } catch (e) {
             showError(e.message);
@@ -93,6 +103,8 @@ $activeNav = 'survey-questions';
         document.getElementById('error').classList.add('hidden');
         const wrap = document.getElementById('questions');
         document.getElementById('footer').classList.remove('hidden');
+        document.getElementById('context-wrap').classList.remove('hidden');
+        document.getElementById('survey-context').value = contextText;
 
         if (!questions.length) {
             wrap.innerHTML = '<p class="text-sm text-gray-400 italic py-8 text-center">No questions yet. Click “Add question” to start.</p>';
@@ -102,6 +114,10 @@ $activeNav = 'survey-questions';
 
         wrap.innerHTML = questions.map((q, i) => card(q, i)).join('');
         wrap.classList.remove('hidden');
+    }
+
+    function syncContext() {
+        contextText = document.getElementById('survey-context').value.trim();
     }
 
     function card(q, i) {
@@ -206,8 +222,11 @@ $activeNav = 'survey-questions';
 
     async function save() {
         sync();
+        syncContext();
         // Derive a stable key from the label when missing
         questions.forEach(q => { if (!q.key) q.key = slugify(q.label); });
+
+        if (!contextText) return setStatus('Qualification context is required.', true);
 
         // Client-side validation mirrors the backend
         const keys = new Set();
@@ -234,11 +253,12 @@ $activeNav = 'survey-questions';
             const res  = await fetch(API_BASE + '/wl/admin/survey/questions', {
                 method: 'PUT',
                 headers: headers(),
-                body: JSON.stringify({ questions })
+                body: JSON.stringify({ context: contextText, questions })
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || 'Save failed');
             questions = Array.isArray(data.questions) ? data.questions : questions;
+            contextText = String(data.context || contextText);
             render();
             setStatus('Saved ✓', false);
         } catch (e) {

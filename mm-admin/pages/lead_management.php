@@ -7,8 +7,23 @@ if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
+// Combined search filters (name/email, country, date range) — applied server-side.
+$fq        = trim((string) ($_GET['q']         ?? ''));
+$fCountry  = trim((string) ($_GET['country']   ?? ''));
+$fDateFrom = trim((string) ($_GET['date_from'] ?? ''));
+$fDateTo   = trim((string) ($_GET['date_to']   ?? ''));
+$hasFilters = ($fq !== '' || $fCountry !== '' || $fDateFrom !== '' || $fDateTo !== '');
+
+$qs = http_build_query(array_filter([
+    'limit'     => 300,
+    'q'         => $fq,
+    'country'   => $fCountry,
+    'date_from' => $fDateFrom,
+    'date_to'   => $fDateTo,
+], static fn($v) => $v !== '' && $v !== null));
+
 // ── Fetch the deal board (one deal per lead submission) ──────────────────────
-$ch = curl_init(API_BASE . '/wl/admin/deals?limit=300');
+$ch = curl_init(API_BASE . '/wl/admin/deals?' . $qs);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => [
@@ -33,11 +48,14 @@ $deals  = $res['deals'] ?? [];
 $meta   = $res['meta']  ?? [];
 $counts = $meta['stage_counts'] ?? [];
 
-// Pipeline stage definitions (the 6 forward stages + terminal "dead")
+// Pipeline stage definitions, in board order. 'awaiting_info' and 'qualified'
+// are communication stages between the initial 'new' enquiry and the offer
+// stages. "Disqualified" is a classification (like warm/cold), handled
+// separately below.
 $STAGES      = ['new', 'awaiting_info', 'qualified', 'offer_1', 'offer_2', 'long_term', 'won'];
 $STAGE_SHORT = [
     'new'           => 'New',
-    'awaiting_info' => 'Awaiting',
+    'awaiting_info' => 'Awaiting Info',
     'qualified'     => 'Qualified',
     'offer_1'       => '1st Offer',
     'offer_2'       => '2nd Offer',
@@ -46,8 +64,16 @@ $STAGE_SHORT = [
 ];
 
 $total   = count($deals);
-$warm    = 0; $cold = 0;
-foreach ($deals as $d) { if (!empty($d['is_cold_lead'])) $cold++; else $warm++; }
+// Classification tallies. A warm lead whose survey came back below the bar is
+// surfaced as "Disqualified"; one whose answers haven't been scored yet is
+// "Pending". Both are split out of the warm count.
+$warm    = 0; $cold = 0; $disq = 0; $pend = 0;
+foreach ($deals as $d) {
+    if (!empty($d['is_cold_lead']))                 { $cold++; }
+    elseif (!empty($d['is_disqualified']))          { $disq++; }
+    elseif (!empty($d['is_qualification_pending'])) { $pend++; }
+    else                                            { $warm++; }
+}
 $wonCnt   = (int) ($counts['won']  ?? 0);
 $deadCnt  = (int) ($counts['dead'] ?? 0);
 $offerCnt = (int) ($counts['offer_1'] ?? 0) + (int) ($counts['offer_2'] ?? 0);
@@ -85,7 +111,7 @@ const _jwt       = <?= $jsJwt ?>;
         </div>
         <div class="flex items-center gap-3">
             <div class="relative">
-                <input id="search-input" type="text" placeholder="Search name or email…"
+                <input id="search-input" type="text" placeholder="Quick filter loaded…"
                        oninput="filterDeals()"
                        class="text-sm border border-gray-200 rounded-lg px-3 py-2 pl-8 w-56 focus:outline-none focus:ring-2 focus:ring-blue-300">
                 <svg class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -95,8 +121,44 @@ const _jwt       = <?= $jsJwt ?>;
         </div>
     </div>
 
+    <!-- Combined search: name/email + country + date range (searches ALL deals server-side) -->
+    <form method="get" action="/lead-management" class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            <div class="lg:col-span-5">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Name or email</label>
+                <input type="text" name="q" value="<?= e($fq) ?>" placeholder="e.g. John or john@acme.com"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="lg:col-span-3">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                <input type="text" name="country" value="<?= e($fCountry) ?>" placeholder="e.g. United Kingdom"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="lg:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
+                <input type="date" name="date_from" value="<?= e($fDateFrom) ?>"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+            <div class="lg:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+                <input type="date" name="date_to" value="<?= e($fDateTo) ?>"
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-3">
+            <button type="submit" class="inline-flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Search
+            </button>
+            <?php if ($hasFilters): ?>
+            <a href="/lead-management" class="text-sm text-gray-500 hover:text-gray-800">Clear</a>
+            <span class="text-xs text-gray-400">Found <?= count($deals) ?> matching deal<?= count($deals) === 1 ? '' : 's' ?></span>
+            <?php endif; ?>
+        </div>
+    </form>
+
     <!-- Stat summary -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3">
         <div class="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-gray-300 transition-colors" onclick="setFilter('all')">
             <p class="text-xs text-gray-500">Total deals</p>
             <p class="mt-1 text-2xl font-bold text-gray-800"><?= $total ?></p>
@@ -108,6 +170,14 @@ const _jwt       = <?= $jsJwt ?>;
         <div class="bg-white rounded-xl border border-cyan-100 p-4 cursor-pointer hover:border-cyan-300 transition-colors" onclick="setFilter('cold')">
             <p class="text-xs text-cyan-600 font-medium">&#10052; Cold</p>
             <p class="mt-1 text-2xl font-bold text-cyan-600"><?= $cold ?></p>
+        </div>
+        <div class="bg-white rounded-xl border border-purple-100 p-4 cursor-pointer hover:border-purple-300 transition-colors" onclick="setFilter('disqualified')">
+            <p class="text-xs text-purple-600 font-medium">&#9888; Disqualified</p>
+            <p class="mt-1 text-2xl font-bold text-purple-600"><?= $disq ?></p>
+        </div>
+        <div class="bg-white rounded-xl border border-amber-100 p-4 cursor-pointer hover:border-amber-300 transition-colors" onclick="setFilter('pending')">
+            <p class="text-xs text-amber-600 font-medium">&#8987; Pending</p>
+            <p class="mt-1 text-2xl font-bold text-amber-600"><?= $pend ?></p>
         </div>
         <div class="bg-white rounded-xl border border-blue-100 p-4 cursor-pointer hover:border-blue-300 transition-colors" onclick="setFilter('offer')">
             <p class="text-xs text-blue-600 font-medium">&#128188; In Offer</p>
@@ -128,6 +198,8 @@ const _jwt       = <?= $jsJwt ?>;
         <button id="tab-all"   onclick="setFilter('all')"   class="tab-btn active-tab text-sm px-4 py-1.5 rounded-full border transition-colors">All</button>
         <button id="tab-warm"  onclick="setFilter('warm')"  class="tab-btn text-sm px-4 py-1.5 rounded-full border transition-colors">&#9733; Warm</button>
         <button id="tab-cold"  onclick="setFilter('cold')"  class="tab-btn text-sm px-4 py-1.5 rounded-full border transition-colors">&#10052; Cold</button>
+        <button id="tab-disqualified" onclick="setFilter('disqualified')" class="tab-btn text-sm px-4 py-1.5 rounded-full border transition-colors">&#9888; Disqualified</button>
+        <button id="tab-pending" onclick="setFilter('pending')" class="tab-btn text-sm px-4 py-1.5 rounded-full border transition-colors">&#8987; Pending</button>
         <span class="w-px h-5 bg-gray-200 mx-1"></span>
         <?php foreach ($STAGES as $st): ?>
         <button id="tab-<?= $st ?>" onclick="setFilter('<?= $st ?>')" class="tab-btn text-sm px-3 py-1.5 rounded-full border transition-colors"><?= htmlspecialchars($STAGE_SHORT[$st]) ?></button>
@@ -138,7 +210,13 @@ const _jwt       = <?= $jsJwt ?>;
 
     <!-- Deal cards -->
     <?php if (empty($deals)): ?>
-    <div class="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-400">No deals yet.</div>
+    <div class="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-400">
+        <?php if ($hasFilters): ?>
+        No deals match your search. <a href="/lead-management" class="text-blue-600 hover:underline">Clear filters</a>
+        <?php else: ?>
+        No deals yet.
+        <?php endif; ?>
+    </div>
     <?php else: ?>
     <div id="deal-list" class="space-y-3">
         <?php foreach ($deals as $d):
@@ -147,8 +225,11 @@ const _jwt       = <?= $jsJwt ?>;
             $name    = $d['lead_name'] ?: 'Unknown';
             $email   = $d['lead_email'] ?: '';
             $phone   = $d['lead_phone'] ?: '';
+            $country = $d['lead_country'] ?? '';
             $initial = strtoupper(substr($name, 0, 1));
             $isCold  = !empty($d['is_cold_lead']);
+            $isDisq  = !empty($d['is_disqualified']);
+            $isPend  = !empty($d['is_qualification_pending']);
             $isNew   = empty($d['is_read']);
             $stage   = $d['stage'] ?: 'new';
             $isDead  = $stage === 'dead';
@@ -158,8 +239,10 @@ const _jwt       = <?= $jsJwt ?>;
             $curIdx  = $isDead ? -1 : array_search($stage, $STAGES, true);
             if ($curIdx === false) $curIdx = 0;
 
-            $filterAttr = implode(' ', ['all', $isCold ? 'cold' : 'warm', $stage]);
-            $searchKey  = strtolower($name . ' ' . $email);
+            // Classification tag drives both the chip and the filter tabs.
+            $classif    = $isCold ? 'cold' : ($isDisq ? 'disqualified' : ($isPend ? 'pending' : 'warm'));
+            $filterAttr = implode(' ', ['all', $classif, $stage]);
+            $searchKey  = strtolower($name . ' ' . $email . ' ' . $country);
         ?>
         <div class="deal-card bg-white rounded-xl border <?= $isDead ? 'border-red-200' : ($isWon ? 'border-green-200' : 'border-gray-200') ?> p-4 hover:shadow-sm transition cursor-pointer"
              data-filter="<?= htmlspecialchars($filterAttr, ENT_QUOTES, 'UTF-8') ?>"
@@ -178,6 +261,10 @@ const _jwt       = <?= $jsJwt ?>;
                             <p class="font-semibold text-gray-800 truncate max-w-[200px]"><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></p>
                             <?php if ($isCold): ?>
                             <span class="text-[10px] font-semibold bg-cyan-50 text-cyan-600 border border-cyan-200 px-2 py-0.5 rounded-full">&#10052; Cold</span>
+                            <?php elseif ($isDisq): ?>
+                            <span class="text-[10px] font-semibold bg-purple-50 text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full">&#9888; Disqualified</span>
+                            <?php elseif ($isPend): ?>
+                            <span class="text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">&#8987; Pending</span>
                             <?php else: ?>
                             <span class="text-[10px] font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full">&#9733; Warm</span>
                             <?php endif; ?>
