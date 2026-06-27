@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-define('API_KEY',  'mq-prod-public-key-001');
+define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
@@ -47,9 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($status === 200 && isset($res['token'])) {
         session_regenerate_id(true);
         $_SESSION['jwt'] = $res['token'];
-        if (!empty($res['user']['name'])) {
-            $_SESSION['admin_name'] = $res['user']['name'];
-        }
+
+        $admin = $res['admin'] ?? [];
+        $_SESSION['admin_id']        = $admin['id']          ?? null;
+        $_SESSION['admin_name']      = $admin['name']        ?? '';
+        $_SESSION['admin_role']      = $admin['role']        ?? '';
+        $_SESSION['admin_role_name'] = $admin['role_name']   ?? ($admin['role'] ?? '');
+        $_SESSION['permissions']     = is_array($admin['permissions'] ?? null) ? $admin['permissions'] : [];
+
         header('Location: /dashboard');
         exit;
     }
@@ -70,8 +75,8 @@ $layout = 'auth';
 <div class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="w-full max-w-sm">
         <div class="mb-8 text-center">
-            <h1 class="text-2xl font-bold text-gray-800">Majestic Marquees</h1>
-            <p class="mt-1 text-sm text-gray-500">Admin Panel</p>
+            <img src="/logo-original.webp" alt="Majestic Marquees" class="mx-auto h-20 w-auto object-contain">
+            <p class="mt-3 text-sm text-gray-500">Admin Panel</p>
         </div>
         <form method="POST" action="/login" class="w-full p-8 bg-white rounded-2xl shadow-md">
             <h2 class="mb-6 text-xl font-semibold text-gray-700">Sign in</h2>
@@ -90,7 +95,7 @@ $layout = 'auth';
                     type="email"
                     name="email"
                     placeholder="admin@example.com"
-                    class="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-gray-300"
+                    class="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-tan-400"
                     required>
             </div>
 
@@ -100,15 +105,19 @@ $layout = 'auth';
                     type="password"
                     name="password"
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-gray-300"
+                    class="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-tan-400"
                     required>
             </div>
 
             <button
                 type="submit"
-                class="w-full py-3 text-sm font-semibold text-white bg-gray-800 rounded-lg hover:bg-gray-700 transition">
+                class="w-full py-3 text-sm font-semibold text-white bg-tan-500 rounded-lg hover:bg-tan-600 transition">
                 Sign in
             </button>
+
+            <div class="mt-6 text-center">
+                <a href="/forgot-password" class="text-sm text-tan-600 hover:underline">Forgot password?</a>
+            </div>
         </form>
     </div>
 </div>

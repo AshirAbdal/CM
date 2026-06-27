@@ -13,36 +13,9 @@ $cards = [
 ];
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "Majestic Marquees & Tents",
-    "name": {
-        "description": "Luxury marquee and stretch tent hire for weddings, events and bespoke outdoor occasions.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Majestic Marquees & Tents",
-        "og:description": "Luxury marquee and stretch tent hire for weddings, events and bespoke outdoor occasions.",
-        "og:type": "website"
-    },
-    "schema": {
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": "Majestic Marquees & Tents",
-        "description": "Luxury marquee and stretch tent hire for weddings, events and bespoke outdoor occasions.",
-        "url": "https://majesticmarquees.com",
-        "contactPoint": {
-            "@type": "ContactPoint",
-            "contactType": "Customer Service",
-            "url": "https://majesticmarquees.com/contact-get-a-quote"
-        }
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative bg-black">
-    <img src="/assets/images/home-hero-bg.jpg" alt="Hero Background" class="w-full min-h-screen object-cover" loading="lazy">
+    <img src="/assets/images/home-hero-bg.jpg" alt="<?= e(get_image_alt('images/home-hero-bg.jpg', 'Hero Background')) ?>" class="w-full min-h-screen object-cover" loading="lazy">
     <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-8">
         <div class="bg-cream-50 px-6 sm:px-12 py-12 sm:py-16 text-center max-w-2xl w-full shadow-xl">
             <h5 class="font-display text-[18px] text-[#2c2c2c] mb-4">Elevate Your Experience</h5>
@@ -67,8 +40,8 @@ $cards = [
 <section class="section bg-[#f5f1e8]">
     <div class="container-x grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div class="relative h-[520px] sm:h-[600px]">
-            <img src="/assets/images/home-story-1.jpg" alt="Story Image 1" class="absolute left-0 bottom-0 w-[55%] aspect-[4/5] object-cover" loading="lazy">
-            <img src="/assets/images/home-story-2.jpg" alt="Story Image 2" class="absolute right-0 top-0 w-[40%] aspect-[2/3] object-cover" loading="lazy">
+            <img src="/assets/images/home-story-1.jpg" alt="<?= e(get_image_alt('images/home-story-1.jpg', 'Story Image 1')) ?>" class="absolute left-0 bottom-0 w-[55%] aspect-[4/5] object-cover" loading="lazy">
+            <img src="/assets/images/home-story-2.jpg" alt="<?= e(get_image_alt('images/home-story-2.jpg', 'Story Image 2')) ?>" class="absolute right-0 top-0 w-[40%] aspect-[2/3] object-cover" loading="lazy">
         </div>
         <div>
             <h1 class="heading-xl">Our Story</h1>
@@ -99,7 +72,7 @@ $cards = [
 
 <!-- Feature card grid -->
 <section class="relative bg-[#e8e2d4]">
-    <img src="/assets/images/home-features-bg.jpg" alt="Field Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+    <img src="/assets/images/home-features-bg.jpg" alt="<?= e(get_image_alt('images/home-features-bg.jpg', 'Field Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     <div class="relative container-x py-24 sm:py-32 lg:py-40">
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-tan-500/50 max-w-[1280px] mx-auto">
             <?php foreach ($cards as $c): ?>
@@ -129,7 +102,7 @@ $cards = [
             <?php carousel_open(['arrows' => true]); ?>
             <?php for ($i = 1; $i <= 12; $i++): ?>
                 <div class="shrink-0 grow-0 basis-full px-2">
-                    <img src="/assets/images/home-tent-carousel-<?= $i ?>.jpg" alt="Tent <?= $i ?>" class="w-full aspect-[16/10] min-h-[420px] sm:min-h-[520px] lg:min-h-[620px] object-cover" loading="lazy">
+                    <img src="/assets/images/home-tent-carousel-<?= $i ?>.jpg" alt="<?= e(get_image_alt('images/home-tent-carousel-' . $i . '.jpg', 'Tent ' . $i)) ?>" class="w-full aspect-[16/10] min-h-[420px] sm:min-h-[520px] lg:min-h-[620px] object-cover" loading="lazy">
                 </div>
             <?php endfor; ?>
             <?php carousel_close(); ?>

@@ -4,7 +4,8 @@
    window.MM.hydrate(root) is re-run after every SPA navigation. */
 (function () {
     'use strict';
-
+    /* ── Backend API config (injected by layout/page.php) ──── */
+    var API_BASE = (window.MM_API && window.MM_API.base) || '';
     /* ── Carousel ───────────────────────────────────────────── */
     function arrowButton(dir) {
         var btn = document.createElement('button');
@@ -198,16 +199,18 @@
                 '<div class="animate-pulse space-y-4 p-6"><div class="w-24 h-24 rounded-full bg-forest-200/40"></div><div class="h-4 bg-forest-200/40 rounded w-3/4"></div><div class="h-4 bg-forest-200/40 rounded w-full"></div></div>' +
                 '</div>';
             var page = host.getAttribute('data-page');
-            var url = API_BASE + '/api/testimonials' + (page ? '?page=' + encodeURIComponent(page) : '');
+            var url = API_BASE + '/wl/public/testimonials' + (page ? '?page=' + encodeURIComponent(page) : '');
             fetch(url, { headers: { Accept: 'application/json' } })
-                .then(function (r) { return r.ok ? r.json() : []; })
-                .then(function (items) {
-                    if (!Array.isArray(items) || !items.length) {
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    var items = data && Array.isArray(data.testimonials) ? data.testimonials
+                              : (Array.isArray(data) ? data : []);
+                    if (!items.length) {
                         host.innerHTML = '<p class="text-center text-forest-700/50 italic py-12">No testimonials yet.</p>';
                         return;
                     }
                     var slides = items.map(testimonialCard).join('');
-                    host.innerHTML = '<div class="relative" data-carousel data-arrows="0" data-dots="1">' +
+                    host.innerHTML = '<div class="relative" data-carousel data-arrows="0" data-dots="1" data-autoplay="6000">' +
                         '<div class="overflow-hidden" data-carousel-viewport><div class="flex" data-carousel-track>' +
                         slides + '</div></div></div>';
                     initCarousels(host);
@@ -416,14 +419,184 @@
             });
     });
 
-    /* ── Public hydrate ─────────────────────────────────────── */
+    /* ── Review submission form ──────────────────── */
+    function initReviewForm(root) {
+        root.querySelectorAll('[data-review-form]:not([data-review-form-done])').forEach(function (form) {
+            form.setAttribute('data-review-form-done', '1');
+
+            var stars   = form.querySelectorAll('[data-star]');
+            var ratingI = form.querySelector('[data-review-rating]');
+            var statusE = form.querySelector('[data-review-status]');
+            var submitB = form.querySelector('[data-review-submit]');
+            var current = 0;
+
+            function paint(val) {
+                stars.forEach(function (s) {
+                    var n = parseInt(s.getAttribute('data-star'), 10);
+                    s.classList.toggle('text-amber-500', n <= val);
+                    s.classList.toggle('text-forest-300/40', n > val);
+                });
+            }
+            stars.forEach(function (s) {
+                var n = parseInt(s.getAttribute('data-star'), 10);
+                s.addEventListener('mouseenter', function () { paint(n); });
+                s.addEventListener('click', function () {
+                    current = n;
+                    if (ratingI) { ratingI.value = String(n); }
+                    paint(n);
+                });
+            });
+            form.addEventListener('mouseleave', function () { paint(current); });
+
+            /* photo picker (optional) */
+            var photoInput   = form.querySelector('[data-review-photo]');
+            var photoPreview = form.querySelector('[data-review-photo-preview]');
+            var photoIcon    = form.querySelector('[data-review-photo-icon]');
+            var photoClear   = form.querySelector('[data-review-photo-clear]');
+            var photoData    = '';
+            var PHOTO_MAX    = 3 * 1024 * 1024;
+            var PHOTO_TYPES  = ['image/jpeg', 'image/png', 'image/webp'];
+
+            function clearPhoto() {
+                photoData = '';
+                if (photoInput)   { photoInput.value = ''; }
+                if (photoPreview) { photoPreview.src = ''; photoPreview.classList.add('hidden'); }
+                if (photoIcon)    { photoIcon.classList.remove('hidden'); }
+                if (photoClear)   { photoClear.classList.add('hidden'); }
+            }
+            if (photoClear) { photoClear.addEventListener('click', clearPhoto); }
+            if (photoInput) {
+                photoInput.addEventListener('change', function () {
+                    var file = photoInput.files && photoInput.files[0];
+                    if (!file) { clearPhoto(); return; }
+                    if (PHOTO_TYPES.indexOf(file.type) === -1) {
+                        clearPhoto();
+                        setStatus('Please choose a JPG, PNG or WebP image.', false);
+                        return;
+                    }
+                    if (file.size > PHOTO_MAX) {
+                        clearPhoto();
+                        setStatus('That image is too large (max 3MB).', false);
+                        return;
+                    }
+                    var reader = new FileReader();
+                    reader.onload = function () {
+                        photoData = String(reader.result || '');
+                        if (photoPreview) { photoPreview.src = photoData; photoPreview.classList.remove('hidden'); }
+                        if (photoIcon)    { photoIcon.classList.add('hidden'); }
+                        if (photoClear)   { photoClear.classList.remove('hidden'); }
+                    };
+                    reader.onerror = function () { clearPhoto(); setStatus('Could not read that image. Please try another.', false); };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function setStatus(msg, ok) {
+                if (!statusE) { return; }
+                statusE.textContent = msg;
+                statusE.className = 'text-body-s mt-3 ' + (ok ? 'text-forest-700' : 'text-red-600');
+                statusE.classList.remove('hidden');
+            }
+
+            function field(name) {
+                var el = form.querySelector('[name="' + name + '"]');
+                return el ? String(el.value || '').trim() : '';
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                var payload = {
+                    name:    field('name'),
+                    email:   field('email'),
+                    title:   field('title'),
+                    company: field('company'),
+                    quote:   field('quote'),
+                    rating:  current,
+                    avatar:  photoData
+                };
+
+                if (!payload.name)  { setStatus('Please enter your name.', false); return; }
+                if (!payload.email) { setStatus('Please enter a valid email address.', false); return; }
+                if (!current)       { setStatus('Please choose a star rating.', false); return; }
+                if (payload.quote.length < 10) { setStatus('Please tell us a little more about your experience.', false); return; }
+
+                if (submitB) { submitB.disabled = true; submitB.classList.add('opacity-60'); }
+                setStatus('Submitting your review...', true);
+
+                fetch(API_BASE + '/wl/forms/testimonial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+                    .then(function (res) {
+                        if (!res.ok || !res.d || !res.d.success) {
+                            throw new Error(res.d && res.d.error ? res.d.error : 'Something went wrong. Please try again.');
+                        }
+                        form.reset();
+                        current = 0;
+                        paint(0);
+                        if (ratingI) { ratingI.value = '0'; }
+                        clearPhoto();
+                        setStatus(res.d.message || 'Thank you! Your review has been submitted and will appear once approved.', true);
+                        if (submitB) { submitB.disabled = false; submitB.classList.remove('opacity-60'); }
+                    })
+                    .catch(function (err) {
+                        setStatus(err.message || 'Something went wrong. Please try again.', false);
+                        if (submitB) { submitB.disabled = false; submitB.classList.remove('opacity-60'); }
+                    });
+            });
+        });
+    }
+
+    /* ── Review modal open / close ───────────────── */
+    var reviewModalGlobalsWired = false;
+    function reviewModalEl() { return document.querySelector('[data-review-modal]'); }
+    function openReviewModal() {
+        var modal = reviewModalEl();
+        if (!modal) { return; }
+        modal.classList.remove('hidden');
+        document.documentElement.classList.add('overflow-hidden');
+        document.body.classList.add('overflow-hidden');
+        var first = modal.querySelector('input, textarea');
+        if (first) { setTimeout(function () { first.focus(); }, 80); }
+    }
+    function closeReviewModal() {
+        var modal = reviewModalEl();
+        if (!modal) { return; }
+        modal.classList.add('hidden');
+        document.documentElement.classList.remove('overflow-hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    function initReviewToggle(root) {
+        root.querySelectorAll('[data-review-open]:not([data-review-open-done])').forEach(function (btn) {
+            btn.setAttribute('data-review-open-done', '1');
+            btn.addEventListener('click', openReviewModal);
+        });
+        if (reviewModalGlobalsWired) { return; }
+        reviewModalGlobalsWired = true;
+        document.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('[data-review-close]')) { closeReviewModal(); }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') { return; }
+            var modal = reviewModalEl();
+            if (modal && !modal.classList.contains('hidden')) { closeReviewModal(); }
+        });
+    }
+
+    /* ── Public hydrate ────────────────────────── */
     function hydrate(root) {
         root = root || document;
         initCarousels(root);
         initAccordions(root);
         initTestimonials(root);
+        initReviewForm(root);
+        initReviewToggle(root);
         initConfigurators(root);
         renderRecaptcha(root);
+        if (window.MMConsent) { window.MMConsent.scan(root); }
         updateActiveNav(window.location.pathname);
     }
 

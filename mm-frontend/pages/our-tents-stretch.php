@@ -37,7 +37,7 @@ $sizeGroups = [
     ['label' => '4.5 / 6 meter', 'variants' => [
         ['label' => '4.5x4.5', 'images' => ['/assets/images/stretch-config-4-5x4-5.jpg'], 'size' => '4.5×4.5 meter', 'seated' => '8 persons', 'cocktail' => '14 Persons', 'cinema' => '20 Persons', 'surface' => '20.25 m²', 'coating' => 'single coated', 'weight' => '15kg', 'packed' => '50x50x100cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
         ['label' => '4.5x7.5', 'images' => ['/assets/images/stretch-config-4-5x7-5.jpg'], 'size' => '4.5×7.5 meter', 'seated' => '14 persons', 'cocktail' => '24 Persons', 'cinema' => '34 Persons', 'surface' => '33.75 m²', 'coating' => 'single coated', 'weight' => '22kg', 'packed' => '50x50x120cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
-        ['label' => '6x6', 'images' => ['/assets/images/stretch-config-6x6.jpg'], 'size' => '6×6 meter', 'seated' => '16 persons', 'cocktail' => '28 Persons', 'cinema' => '40 Persons', 'surface' => '36 m²', 'coating' => 'single coated', 'weight' => '26kg', 'packed' => '55x55x120cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
+        ['label' => '6x6', 'images' => ['/assets/images/stretch-config-6x6-1.webp', '/assets/images/stretch-config-6x6-2.webp'], 'size' => '6×6 meter', 'seated' => '16 persons', 'cocktail' => '28 Persons', 'cinema' => '40 Persons', 'surface' => '36 m²', 'coating' => 'single coated', 'weight' => '26kg', 'packed' => '55x55x120cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
         ['label' => '6x10.5', 'images' => ['/assets/images/stretch-config-6x10-5.jpg'], 'size' => '6×10.5 meter', 'seated' => '28 persons', 'cocktail' => '48 Persons', 'cinema' => '68 Persons', 'surface' => '63 m²', 'coating' => 'single coated', 'weight' => '40kg', 'packed' => '60x60x130cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
         ['label' => '6x15', 'images' => ['/assets/images/stretch-config-6x15.jpg'], 'size' => '6×15 meter', 'seated' => '40 persons', 'cocktail' => '70 Persons', 'cinema' => '98 Persons', 'surface' => '90 m²', 'coating' => 'single coated', 'weight' => '55kg', 'packed' => '60x60x150cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
     ]],
@@ -48,7 +48,7 @@ $sizeGroups = [
         ['label' => '9x15', 'images' => ['/assets/images/stretch-config-9x15.jpg'], 'size' => '9×15 meter', 'seated' => '85 persons', 'cocktail' => '148 Persons', 'cinema' => '210 Persons', 'surface' => '135 m²', 'coating' => 'double coated', 'weight' => '80kg', 'packed' => '70x70x160cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
     ]],
     ['label' => '10.5 / 12 meter', 'variants' => [
-        ['label' => '10.5x10.5', 'images' => ['/assets/images/stretch-config-10-5x10-5.jpg'], 'size' => '10.5×10.5 meter', 'seated' => '64 persons', 'cocktail' => '110 Persons', 'cinema' => '156 Persons', 'surface' => '110.25 m²', 'coating' => 'double coated', 'weight' => '70kg', 'packed' => '70x70x160cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
+        ['label' => '10.5x10.5', 'images' => ['/assets/images/stretch-config-10-5x10-5-1.webp', '/assets/images/stretch-config-10-5x10-5-2.webp'], 'size' => '10.5×10.5 meter', 'seated' => '64 persons', 'cocktail' => '110 Persons', 'cinema' => '156 Persons', 'surface' => '110.25 m²', 'coating' => 'double coated', 'weight' => '70kg', 'packed' => '70x70x160cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
         ['label' => '12x12', 'images' => ['/assets/images/stretch-config-12x12.jpg'], 'size' => '12×12 meter', 'seated' => '90 persons', 'cocktail' => '155 Persons', 'cinema' => '220 Persons', 'surface' => '144 m²', 'coating' => 'double coated', 'weight' => '95kg', 'packed' => '75x75x170cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
         ['label' => '12x18', 'images' => ['/assets/images/stretch-config-12x18.jpg'], 'size' => '12×18 meter', 'seated' => '140 persons', 'cocktail' => '240 Persons', 'cinema' => '340 Persons', 'surface' => '216 m²', 'coating' => 'double coated', 'weight' => '140kg', 'packed' => '80x80x180cm', 'colours' => 'Sand / Platinum Grey / Taupe / Black / Red / White'],
     ]],
@@ -75,25 +75,10 @@ $faqs = [
 ];
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "Stretch / Nomadic / Bedouin Tents - Majestic Marquees & Tents",
-    "name": {
-        "description": "Contemporary, playful and sophisticated stretch tents with a 5-year fabric warranty, available in six colours.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Stretch / Nomadic / Bedouin Tents - Majestic Marquees & Tents",
-        "og:description": "Contemporary, playful and sophisticated stretch tents with a 5-year fabric warranty, available in six colours.",
-        "og:type": "website"
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[360px] sm:h-[420px] lg:h-[480px] overflow-hidden">
-        <img src="/assets/images/stretch-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/stretch-hero-bg.jpg" alt="<?= e(get_image_alt('images/stretch-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute inset-0 flex items-center justify-center">
@@ -127,7 +112,7 @@ $faqs = [
         <?php carousel_open(); ?>
         <?php for ($i = 1; $i <= 9; $i++): ?>
             <div class="shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3 px-2">
-                <img src="/assets/images/stretch-carousel-<?= $i ?>.jpg" alt="Stretch Tent <?= $i ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
+                <img src="/assets/images/stretch-carousel-<?= $i ?>.jpg" alt="<?= e(get_image_alt('images/stretch-carousel-' . $i . '.jpg', 'Stretch Tent ' . $i)) ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
             </div>
         <?php endfor; ?>
         <?php carousel_close(); ?>
@@ -170,13 +155,13 @@ $faqs = [
                 the Netherlands.
             </p>
             <div class="mt-10 flex justify-center">
-                <img src="/assets/images/stretch-qtents-logo.webp" alt="Qtents" class="h-[300px] w-auto object-contain" loading="lazy">
+                <img src="/assets/images/stretch-qtents-logo.webp" alt="<?= e(get_image_alt('images/stretch-qtents-logo.webp', 'Qtents')) ?>" class="h-[300px] w-auto object-contain" loading="lazy">
             </div>
         </div>
         <div>
             <h2 class="heading-m">Canvas Information</h2>
             <div class="mt-6">
-                <img src="/assets/images/stretch-canvas-tent.webp" alt="HQ8 Heavy Stretch canvas layers" class="w-full max-w-[500px] mx-auto object-contain" loading="lazy">
+                <img src="/assets/images/stretch-canvas-tent.webp" alt="<?= e(get_image_alt('images/stretch-canvas-tent.webp', 'HQ8 Heavy Stretch canvas layers')) ?>" class="w-full max-w-[500px] mx-auto object-contain" loading="lazy">
             </div>
             <ul class="mt-6 space-y-2 text-forest-700/85">
                 <?php foreach ($canvasInfo as $line): ?>
@@ -188,7 +173,7 @@ $faqs = [
             </ul>
             <h3 class="mt-10 text-primary-ttl text-forest-800 text-center">Colors on stock</h3>
             <div class="mt-6">
-                <img src="/assets/images/stretch-colors.webp" alt="Stretch tent canvas colours" class="w-full object-cover" loading="lazy">
+                <img src="/assets/images/stretch-colors.webp" alt="<?= e(get_image_alt('images/stretch-colors.webp', 'Stretch tent canvas colours')) ?>" class="w-full object-cover" loading="lazy">
             </div>
         </div>
     </div>
@@ -208,7 +193,7 @@ $faqs = [
                 <div class="shrink-0 grow-0 basis-full sm:basis-1/2 px-4 sm:px-8">
                     <div class="text-center">
                         <p class="text-forest-700/85 italic font-display max-w-md mx-auto"><?= e($f['text']) ?></p>
-                        <img src="/assets/images/<?= e($f['icon']) ?>.webp" alt="<?= e($f['title']) ?>" class="mt-8 mx-auto w-28 h-28 object-contain" loading="lazy">
+                        <img src="/assets/images/<?= e($f['icon']) ?>.webp" alt="<?= e(get_image_alt('images/' . $f['icon'] . '.webp', $f['title'])) ?>" class="mt-8 mx-auto w-28 h-28 object-contain" loading="lazy">
                         <h4 class="mt-6 text-primary-ttl text-forest-800"><?= e($f['title']) ?></h4>
                     </div>
                 </div>

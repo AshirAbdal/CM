@@ -3,21 +3,21 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
+if (!defined('API_KEY'))  define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
-// Combined search filters (name/email/business, country, date range).
+// Combined search filters (name/email/business, phone, date range).
 $fq        = trim((string) ($_GET['q']         ?? ''));
-$fCountry  = trim((string) ($_GET['country']   ?? ''));
+$fPhone    = trim((string) ($_GET['phone']     ?? ''));
 $fDateFrom = trim((string) ($_GET['date_from'] ?? ''));
 $fDateTo   = trim((string) ($_GET['date_to']   ?? ''));
-$hasFilters = ($fq !== '' || $fCountry !== '' || $fDateFrom !== '' || $fDateTo !== '');
+$hasFilters = ($fq !== '' || $fPhone !== '' || $fDateFrom !== '' || $fDateTo !== '');
 
 $qs = http_build_query(array_filter([
     'limit'     => 50,
     'q'         => $fq,
-    'country'   => $fCountry,
+    'phone'     => $fPhone,
     'date_from' => $fDateFrom,
     'date_to'   => $fDateTo,
 ], static fn($v) => $v !== '' && $v !== null));
@@ -86,47 +86,72 @@ const _jwt       = <?= $jsJwt ?>;
             <h2 class="text-xl font-semibold text-gray-800">Customer Information</h2>
             <p class="text-sm text-gray-500 mt-1">All enquiries submitted through website forms.</p>
         </div>
-        <button id="sync-btn" onclick="syncColdLeads()"
-                class="inline-flex items-center gap-2 text-sm bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
-            <span id="sync-icon">&#10227;</span> Sync Cold Leads
-        </button>
+        <div class="flex items-center gap-3">
+            <?php if (can('customers.manage')): ?>
+            <button type="button" onclick="openAddCustomer()"
+                    class="inline-flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+                Add Customer
+            </button>
+            <?php endif; ?>
+            <button id="sync-btn" onclick="syncColdLeads()"
+                    class="inline-flex items-center gap-2 text-sm bg-tan-500 hover:bg-tan-600 text-white px-4 py-2 rounded-lg transition-colors">
+                <span id="sync-icon">&#10227;</span> Sync Cold Leads
+            </button>
+        </div>
     </div>
 
-    <!-- Combined search: name/email/business + country + date range (server-side) -->
-    <form method="get" action="/customer-info-details" class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-            <div class="lg:col-span-5">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Name, email or business</label>
-                <input type="text" name="q" value="<?= e($fq) ?>" placeholder="e.g. John, john@acme.com, Acme Ltd"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
-            </div>
-            <div class="lg:col-span-3">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
-                <input type="text" name="country" value="<?= e($fCountry) ?>" placeholder="e.g. United Kingdom"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
-            </div>
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
-                <input type="date" name="date_from" value="<?= e($fDateFrom) ?>"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
-            </div>
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
-                <input type="date" name="date_to" value="<?= e($fDateTo) ?>"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
-            </div>
-        </div>
-        <div class="flex items-center gap-3 mt-3">
-            <button type="submit" class="inline-flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                Search
-            </button>
+    <!-- Combined search: name/email/business + phone + date range (server-side) -->
+    <div id="adv-search-wrap">
+        <button type="button" id="adv-search-toggle" onclick="toggleAdvSearch()"
+                aria-expanded="<?= $hasFilters ? 'true' : 'false' ?>" aria-controls="adv-search-panel"
+                class="inline-flex items-center gap-2 text-sm bg-white border border-gray-200 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
+            Advanced Search
             <?php if ($hasFilters): ?>
-            <a href="/customer-info-details" class="text-sm text-gray-500 hover:text-gray-800">Clear</a>
-            <span class="text-xs text-gray-400">Showing <?= count($leads) ?> of <?= (int) ($meta['total'] ?? count($leads)) ?> matching</span>
+            <span class="text-[10px] font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Active</span>
             <?php endif; ?>
-        </div>
-    </form>
+            <svg id="adv-search-chevron" class="w-4 h-4 text-gray-400 transition-transform <?= $hasFilters ? 'rotate-180' : '' ?>" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+
+        <form method="get" action="/customer-info-details" id="adv-search-panel"
+              class="mt-2 w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 <?= $hasFilters ? '' : 'hidden' ?>">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                <div class="lg:col-span-5">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Name, email or business</label>
+                    <input type="text" name="q" value="<?= e($fq) ?>" placeholder="e.g. John, john@acme.com, Acme Ltd"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="lg:col-span-3">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Phone number</label>
+                    <input type="tel" name="phone" value="<?= e($fPhone) ?>" placeholder="e.g. 07123 456789"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
+                    <input type="date" name="date_from" value="<?= e($fDateFrom) ?>"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+                    <input type="date" name="date_to" value="<?= e($fDateTo) ?>"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+                <button type="submit" class="inline-flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    Search
+                </button>
+                <?php if ($hasFilters): ?>
+                <a href="/customer-info-details" class="text-sm text-gray-500 hover:text-gray-800">Clear</a>
+                <span class="text-xs text-gray-400">Showing <?= count($leads) ?> of <?= (int) ($meta['total'] ?? count($leads)) ?> matching</span>
+                <?php endif; ?>
+            </div>
+        </form>
+    </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -345,6 +370,64 @@ const _jwt       = <?= $jsJwt ?>;
 
     </div>
 </div>
+
+<?php if (can('customers.manage')): ?>
+<!-- ── Add Customer modal ────────────────────────────── -->
+<div id="add-customer-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/40"
+     onclick="if (event.target === this) closeAddCustomer()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 class="text-base font-semibold text-gray-800">Add Customer</h3>
+            <button type="button" onclick="closeAddCustomer()"
+                    class="text-gray-400 hover:text-gray-700 text-2xl leading-none transition-colors" aria-label="Close">&times;</button>
+        </div>
+        <form id="add-customer-form" onsubmit="submitAddCustomer(event)" class="px-6 py-5 space-y-4" novalidate>
+            <div id="add-customer-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Name <span class="text-red-500">*</span></label>
+                    <input name="name" type="text" required maxlength="150" autocomplete="off"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Email <span class="text-red-500">*</span></label>
+                    <input name="email" type="email" required maxlength="190" autocomplete="off"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                    <input name="phone" type="tel" maxlength="40" autocomplete="off"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                    <input name="country" type="text" maxlength="80" autocomplete="off"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Business name</label>
+                    <input name="legal_business_name" type="text" maxlength="190" autocomplete="off"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Website</label>
+                    <input name="website_url" type="url" maxlength="255" placeholder="https://example.com" autocomplete="off"
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="closeAddCustomer()"
+                        class="text-sm text-gray-500 hover:text-gray-800 px-4 py-2">Cancel</button>
+                <button type="submit" id="add-customer-submit"
+                        class="inline-flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition-colors">
+                    Add Customer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 // Seniority → Tailwind badge colour class
@@ -628,4 +711,108 @@ function syncColdLeads() {
         icon.textContent = '↻';
     });
 }
+
+// ── Advanced-search dropdown ────────────────────────────────────
+function toggleAdvSearch() {
+    const panel = document.getElementById('adv-search-panel');
+    const chev  = document.getElementById('adv-search-chevron');
+    const btn   = document.getElementById('adv-search-toggle');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+    const isOpen = !panel.classList.contains('hidden');
+    if (chev) chev.classList.toggle('rotate-180', isOpen);
+    if (btn)  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+// ── Add Customer modal ──────────────────────────────────────
+// Opens a small modal so an admin can create a customer (contact) by hand.
+// On success the API returns the new CR_id and we jump straight to that
+// customer's detail page. A 409 means the email already exists for this tenant
+// - we surface a link to open the existing record instead of creating a dupe.
+function openAddCustomer() {
+    const m = document.getElementById('add-customer-modal');
+    if (!m) return;
+    const form = document.getElementById('add-customer-form');
+    const err  = document.getElementById('add-customer-error');
+    if (form) form.reset();
+    if (err) { err.classList.add('hidden'); err.textContent = ''; }
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    const first = m.querySelector('input[name="name"]');
+    if (first) setTimeout(() => first.focus(), 50);
+}
+
+function closeAddCustomer() {
+    const m = document.getElementById('add-customer-modal');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+
+function submitAddCustomer(event) {
+    event.preventDefault();
+    const form = event.target;
+    const err  = document.getElementById('add-customer-error');
+    const btn  = document.getElementById('add-customer-submit');
+    err.classList.add('hidden');
+    err.textContent = '';
+
+    // Read by querySelector (not form.name) to avoid the form-property name clash.
+    const val = n => (form.querySelector('[name="' + n + '"]').value || '').trim();
+    const payload = {
+        name:                val('name'),
+        email:               val('email'),
+        phone:               val('phone'),
+        country:             val('country'),
+        legal_business_name: val('legal_business_name'),
+        website_url:         val('website_url'),
+    };
+    if (!payload.name || !payload.email) {
+        err.textContent = 'Name and email are required.';
+        err.classList.remove('hidden');
+        return;
+    }
+
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.classList.add('opacity-60');
+    btn.textContent = 'Adding…';
+
+    fetch(`${_apiBase}/wl/admin/customer`, {
+        method: 'POST',
+        headers: {
+            'Content-Type':  'application/json',
+            'X-API-Key':     _apiKey,
+            'Authorization': 'Bearer ' + _jwt,
+        },
+        body: JSON.stringify(payload),
+    })
+    .then(async r => ({ status: r.status, json: await r.json().catch(() => ({})) }))
+    .then(({ status, json }) => {
+        if (status === 201 && json.success && json.CR_id) {
+            window.location = '/customer-info?CR_id=' + encodeURIComponent(json.CR_id);
+            return;
+        }
+        if (status === 409 && json.CR_id) {
+            err.innerHTML = _esc(json.error || 'A customer with this email already exists.') +
+                ' <a href="/customer-info?CR_id=' + encodeURIComponent(json.CR_id) +
+                '" class="underline font-medium">Open existing customer</a>';
+            err.classList.remove('hidden');
+            return;
+        }
+        err.textContent = json.error || ('Could not add customer (HTTP ' + status + ').');
+        err.classList.remove('hidden');
+    })
+    .catch(e => {
+        err.textContent = 'Request failed: ' + e.message;
+        err.classList.remove('hidden');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+        btn.textContent = original;
+    });
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAddCustomer(); });
 </script>

@@ -6,14 +6,16 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 // token is missing/expired/invalid, so force a fresh login.
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-define('API_KEY',  'mq-prod-public-key-001');
+define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 // The frontend (website) runs on a SEPARATE server, so image changes are pushed
 // over HTTP to its /api/site-images endpoint instead of a shared disk path.
-// IMG_SYNC_SECRET must match the value on the frontend (set both via env in prod).
 define('FRONTEND_BASE',   $_is_local ? 'http://localhost:8001' : 'https://website.majesticmarquees.clickdigim.com');
-define('IMG_SYNC_SECRET', getenv('IMG_SYNC_SECRET') ?: 'mq-img-sync-3f8c1d9a7b2e4056c1a8f3d6e90b2c4d');
 unset($_is_local);
+
+// SEO alt-text length bounds (hard limit, enforced client + server side).
+const ALT_MIN = 100;
+const ALT_MAX = 150;
 
 $ch = curl_init(API_BASE . '/wl/admin/leads');
 curl_setopt_array($ch, [
@@ -61,7 +63,6 @@ function fetch_image_meta(): array {
     $ch = curl_init(FRONTEND_BASE . '/api/site-images');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => ['X-Img-Secret: ' . IMG_SYNC_SECRET],
         CURLOPT_TIMEOUT        => 10,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
@@ -69,10 +70,11 @@ function fetch_image_meta(): array {
     $res  = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($code !== 200) { return ['ok' => false, 'files' => []]; }
+    if ($code !== 200) { return ['ok' => false, 'files' => [], 'alts' => []]; }
     $json  = json_decode((string) $res, true);
     $files = (is_array($json) && isset($json['files']) && is_array($json['files'])) ? $json['files'] : [];
-    return ['ok' => true, 'files' => $files];
+    $alts  = (is_array($json) && isset($json['alts'])  && is_array($json['alts']))  ? $json['alts']  : [];
+    return ['ok' => true, 'files' => $files, 'alts' => $alts];
 }
 
 /** Push one replacement image to the frontend over HTTP (multipart). */
@@ -85,12 +87,36 @@ function upload_image_to_frontend(string $relPath, string $tmpFile, string $mime
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => ['X-Img-Secret: ' . IMG_SYNC_SECRET],
         CURLOPT_POSTFIELDS     => [
             'path' => $relPath,
             'file' => new CURLFile($tmpFile, $mime, $safeName),
         ],
         CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $res  = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = curl_error($ch);
+    curl_close($ch);
+    if ($res === false) { return ['ok' => false, 'error' => 'Network error: ' . $err]; }
+    $json = json_decode((string) $res, true);
+    if ($code === 200 && is_array($json) && !empty($json['ok'])) { return ['ok' => true]; }
+    return ['ok' => false, 'error' => (is_array($json) && isset($json['error'])) ? $json['error'] : ('HTTP ' . $code)];
+}
+
+/** Save SEO alt text for one managed image on the frontend over HTTP (urlencoded). */
+function save_alt_to_frontend(string $relPath, string $alt): array {
+    $ch = curl_init(FRONTEND_BASE . '/api/site-images');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'action' => 'save-alt',
+            'path'   => $relPath,
+            'alt'    => $alt,
+        ]),
+        CURLOPT_TIMEOUT        => 15,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ]);
@@ -258,6 +284,40 @@ $allowed_mime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/av
 $message = '';
 $messageType = '';
 
+// AJAX: save SEO alt text for one image. Returns JSON and exits before any HTML.
+// The hard 100-150 limit is enforced here server-side (authoritative), so it
+// holds even if the client-side guard is bypassed.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save-alt') {
+    header('Content-Type: application/json');
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'Invalid request.']);
+        exit;
+    }
+    $key = trim($_POST['image_key'] ?? '');
+    if (!array_key_exists($key, $images_config)) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Invalid image key.']);
+        exit;
+    }
+    // Normalise (single trimmed line, no tags) then enforce the length band.
+    $alt = trim((string) preg_replace('/\s+/u', ' ', strip_tags((string) ($_POST['alt'] ?? ''))));
+    $len = mb_strlen($alt);
+    if ($len < ALT_MIN || $len > ALT_MAX) {
+        http_response_code(422);
+        echo json_encode(['ok' => false, 'error' => 'Alt text must be ' . ALT_MIN . '-' . ALT_MAX . ' characters (got ' . $len . ').']);
+        exit;
+    }
+    $res = save_alt_to_frontend($images_config[$key]['file'], $alt);
+    if ($res['ok']) {
+        echo json_encode(['ok' => true, 'alt' => $alt, 'len' => $len]);
+    } else {
+        http_response_code(502);
+        echo json_encode(['ok' => false, 'error' => $res['error']]);
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
     $submitted = $_POST['csrf_token'] ?? '';
     $expected  = $_SESSION['csrf_token'] ?? '';
@@ -265,7 +325,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
         http_response_code(403);
         exit('Invalid request.');
     }
-    unset($_SESSION['csrf_token']);
+    // Per-session token: do NOT consume it. Every image card on this page is a
+    // separate form sharing ONE token, so a single-use token broke repeat,
+    // multi-tab, back-button and double-submit uploads with "Invalid request.".
+    // The token still rotates on login (session_regenerate_id) and is never
+    // sent on cross-site POSTs, so CSRF protection is preserved.
     $key = trim($_POST['image_key']);
 
     if (!array_key_exists($key, $images_config)) {
@@ -300,8 +364,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_key'])) {
     }
 }
 
-// Re-issue a CSRF token for the freshly rendered forms (the previous one was
-// consumed above on a successful POST verification).
+// Safety net: ensure a CSRF token exists for the rendered forms (it is normally
+// created near the top of this request and now persists for the whole session).
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -309,6 +373,7 @@ if (empty($_SESSION['csrf_token'])) {
 // Current image metadata from the frontend (size + mtime per slot).
 $metaResult = fetch_image_meta();
 $imageMeta  = $metaResult['files'];
+$imageAlts  = $metaResult['alts'] ?? [];
 $metaOk     = $metaResult['ok'];
 
 $layout    = 'app';
@@ -399,6 +464,28 @@ $activeNav = 'images';
                         <?php endif; ?>
                     </div>
 
+                    <?php
+                        $curAlt = (string) ($imageAlts[$cfg['file']] ?? '');
+                        $curLen = mb_strlen($curAlt);
+                    ?>
+                    <div data-alt-block class="border-t border-gray-100 pt-2">
+                        <label class="block text-[10px] font-semibold text-gray-600 mb-0.5">
+                            Alt text <span class="font-normal text-gray-400">(SEO, <?= ALT_MIN ?>-<?= ALT_MAX ?> chars)</span>
+                        </label>
+                        <textarea data-alt-input data-key="<?= e($key) ?>" rows="2" maxlength="<?= ALT_MAX ?>"
+                                  data-saved="<?= e($curAlt) ?>"
+                                  placeholder="Describe this image for screen readers and SEO (<?= ALT_MIN ?>-<?= ALT_MAX ?> characters)"
+                                  class="w-full text-[10px] text-gray-700 border border-gray-200 rounded p-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-tan-400"><?= e($curAlt) ?></textarea>
+                        <div class="flex items-center justify-between mt-1 gap-2">
+                            <span data-alt-count class="text-[10px] tabular-nums text-gray-400"><?= $curLen ?>/<?= ALT_MAX ?></span>
+                            <button type="button" data-alt-save
+                                    class="py-1 px-2.5 bg-gray-700 hover:bg-gray-800 text-white text-[10px] font-semibold rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                Save alt
+                            </button>
+                        </div>
+                        <p data-alt-msg class="text-[10px] mt-0.5 hidden"></p>
+                    </div>
+
                     <form method="POST" action="/images" enctype="multipart/form-data" class="mt-auto flex flex-col gap-1.5">
                         <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token'] ?? '') ?>">
                         <input type="hidden" name="image_key" value="<?= e($key) ?>">
@@ -411,7 +498,7 @@ $activeNav = 'images';
                                       file:rounded file:border-0 file:text-[10px] file:font-medium
                                       file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                         <button type="submit"
-                                class="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700
+                                class="w-full py-1.5 px-3 bg-tan-500 hover:bg-tan-600
                                        text-white text-[11px] font-semibold rounded transition-colors">
                             Replace
                         </button>
@@ -423,3 +510,73 @@ $activeNav = 'images';
     </section>
     <?php endforeach; ?>
 </div>
+
+<script>
+(function () {
+    const MIN  = <?= ALT_MIN ?>;
+    const MAX  = <?= ALT_MAX ?>;
+    const CSRF = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+
+    // Mirror the server's normalisation so the counter matches what gets stored.
+    function normalise(s) { return s.replace(/\s+/g, ' ').trim(); }
+
+    document.querySelectorAll('[data-alt-block]').forEach(function (block) {
+        const ta    = block.querySelector('[data-alt-input]');
+        const count = block.querySelector('[data-alt-count]');
+        const btn   = block.querySelector('[data-alt-save]');
+        const msg   = block.querySelector('[data-alt-msg]');
+
+        function refresh() {
+            const len     = normalise(ta.value).length;
+            const inRange = len >= MIN && len <= MAX;
+            const saved   = (ta.dataset.saved || '');
+            const changed = normalise(ta.value) !== normalise(saved);
+            count.textContent = len + '/' + MAX;
+            count.className = 'text-[10px] tabular-nums ' +
+                (len === 0 ? 'text-gray-400' : (inRange ? 'text-green-600' : 'text-red-500'));
+            btn.disabled = !inRange || !changed;
+        }
+
+        ta.addEventListener('input', function () { msg.classList.add('hidden'); refresh(); });
+        refresh();
+
+        btn.addEventListener('click', async function () {
+            const val = normalise(ta.value);
+            if (val.length < MIN || val.length > MAX) { return; }
+            btn.disabled = true;
+            const label = btn.textContent;
+            btn.textContent = 'Saving...';
+            try {
+                const fd = new FormData();
+                fd.append('action', 'save-alt');
+                fd.append('csrf_token', CSRF);
+                fd.append('image_key', ta.dataset.key);
+                fd.append('alt', val);
+                const r = await fetch('/images', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd,
+                });
+                const j = await r.json();
+                msg.classList.remove('hidden');
+                if (r.ok && j.ok) {
+                    ta.value = j.alt;
+                    ta.dataset.saved = j.alt;
+                    msg.textContent = 'Saved.';
+                    msg.className = 'text-[10px] mt-0.5 text-green-600';
+                } else {
+                    msg.textContent = (j && j.error) ? j.error : 'Save failed.';
+                    msg.className = 'text-[10px] mt-0.5 text-red-500';
+                }
+            } catch (e) {
+                msg.classList.remove('hidden');
+                msg.textContent = 'Network error. Please try again.';
+                msg.className = 'text-[10px] mt-0.5 text-red-500';
+            } finally {
+                btn.textContent = label;
+                refresh();
+            }
+        });
+    });
+})();
+</script>

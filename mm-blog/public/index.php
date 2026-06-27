@@ -1,4 +1,10 @@
 <?php
+// Let PHP's built-in dev server serve static files (logo, favicon, …) directly.
+if (PHP_SAPI === 'cli-server') {
+    $file = __DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if (is_file($file)) return false;
+}
+
 define('APP_ENTRY', true);
 
 ini_set('display_errors', 0);
@@ -17,8 +23,9 @@ session_start([
 ]);
 
 require __DIR__ . '/../lib/helpers.php';
+require __DIR__ . '/../lib/consent.php';
 
-$allowedHosts = ['localhost', '127.0.0.1', 'blog.majesticmarquees.com', 'majesticmarquees.com'];
+$allowedHosts = ['localhost', '127.0.0.1', 'blog.majesticmarquees.com', 'www.blog.majesticmarquees.com', 'blog.majesticmarquees.clickdigim.com'];
 $host = strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]);
 if (!in_array($host, $allowedHosts, true)) {
     http_response_code(400);
@@ -33,12 +40,17 @@ if ($path === '/home') {
     exit;
 }
 
-$pages = [
-    '/' => __DIR__ . '/../pages/home.php',
-];
+// Proof-of-consent logging endpoint (best-effort, never blocks the page).
+if ($path === '/api/consent-log') {
+    require __DIR__ . '/../lib/consent_log.php';
+    exit;
+}
 
-if (array_key_exists($path, $pages)) {
-    $pageFile = $pages[$path];
+if ($path === '/') {
+    $pageFile = __DIR__ . '/../pages/home.php';
+} elseif (preg_match('#^/([a-z0-9-]+)$#', $path, $m)) {
+    $_GET['slug'] = $m[1];
+    $pageFile = __DIR__ . '/../pages/post.php';
 } else {
     http_response_code(404);
     $pageFile = __DIR__ . '/../pages/not-found.php';

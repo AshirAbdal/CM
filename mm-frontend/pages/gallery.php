@@ -16,25 +16,10 @@ $faqs = [
 ];
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "Gallery - Majestic Marquees & Tents",
-    "name": {
-        "description": "Explore our event showcase - exquisite outdoor setups that transform any celebration into a breathtaking experience.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Gallery - Majestic Marquees & Tents",
-        "og:description": "Explore our event showcase - exquisite outdoor setups that transform any celebration into a breathtaking experience.",
-        "og:type": "website"
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[420px] sm:h-[480px] lg:h-[560px] overflow-hidden">
-        <img src="/assets/images/gallery-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/gallery-hero-bg.jpg" alt="<?= e(get_image_alt('images/gallery-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-black/30"></div>
     <div class="absolute inset-0 flex items-center">
@@ -64,7 +49,7 @@ $faqs = [
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
             <?php for ($n = 1; $n <= 8; $n++): ?>
-                <img src="/assets/images/gallery-showcase-<?= $n ?>.jpg" alt="Image <?= $n ?>" class="aspect-[4/5] w-full object-cover" loading="lazy">
+                <img src="/assets/images/gallery-showcase-<?= $n ?>.jpg" alt="<?= e(get_image_alt('images/gallery-showcase-' . $n . '.jpg', 'Image ' . $n)) ?>" class="aspect-[4/5] w-full object-cover" loading="lazy">
             <?php endfor; ?>
         </div>
     </div>
@@ -86,7 +71,7 @@ $faqs = [
 <section class="section bg-[#f5f1e8]">
     <div class="container-x grid lg:grid-cols-2 gap-12 lg:gap-16 items-start mt-12 mb-20">
         <div class="hidden lg:block">
-            <img src="/assets/images/gallery-process-image.jpg" alt="Image" class="w-full aspect-[4/3.3] object-cover" loading="lazy">
+            <img src="/assets/images/gallery-process-image.jpg" alt="<?= e(get_image_alt('images/gallery-process-image.jpg', 'Image')) ?>" class="w-full aspect-[4/3.3] object-cover" loading="lazy">
         </div>
         <ol class="space-y-12">
             <?php foreach ($steps as $s): ?>
@@ -117,7 +102,7 @@ $faqs = [
         </div>
         <div class="border border-forest-800/40 p-6 sm:p-10">
             <div class="grid lg:grid-cols-2 gap-8 lg:gap-14 items-center">
-                <img src="/assets/images/gallery-faq-image.jpg" alt="Image" class="w-full aspect-[4/5] sm:aspect-[3/4] lg:aspect-[3/3] object-cover" loading="lazy">
+                <img src="/assets/images/gallery-faq-image.jpg" alt="<?= e(get_image_alt('images/gallery-faq-image.jpg', 'Image')) ?>" class="w-full aspect-[4/5] sm:aspect-[3/4] lg:aspect-[3/3] object-cover" loading="lazy">
                 <?php render_accordion($faqs, 'lined'); ?>
             </div>
         </div>

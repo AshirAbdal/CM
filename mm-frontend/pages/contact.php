@@ -10,39 +10,10 @@ $contactEmail   = $contactStatus['email'] ?? '';
 $contactError   = ($contactStatus && !$contactOk) ? ($contactStatus['message'] ?? '') : '';
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "Contact & Get a Quote - Majestic Marquees & Tents",
-    "name": {
-        "description": "Get in touch with Majestic Marquees & Tents to discuss your vision and request a personalized quote for your outdoor event.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Contact & Get a Quote - Majestic Marquees & Tents",
-        "og:description": "Get in touch with Majestic Marquees & Tents to discuss your vision and request a personalized quote for your outdoor event.",
-        "og:type": "website"
-    },
-    "schema": {
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": "Majestic Marquees & Tents",
-        "url": "https://majesticmarquees.com",
-        "email": "Hello@MajesticMarquees.com",
-        "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "Jalan Raya Kuta 32, Desa/Kelurahan Kuta, Kec. Kuta",
-            "addressRegion": "Bali",
-            "postalCode": "80361",
-            "addressCountry": "ID"
-        }
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[360px] sm:h-[420px] lg:h-[480px] overflow-hidden">
-        <img src="/assets/images/contact-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/contact-hero-bg.jpg" alt="<?= e(get_image_alt('images/contact-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute inset-0 flex items-center justify-center px-4">
@@ -103,14 +74,23 @@ $contactError   = ($contactStatus && !$contactOk) ? ($contactStatus['message'] ?
             </div>
         </div>
         <div class="w-full h-[400px] overflow-hidden border border-forest-800/15">
-            <iframe
-                src="https://maps.google.com/maps?ll=-8.719086,115.17545&amp;q=Jalan+Raya+Kuta+32,+Desa/Kelurahan+Kuta,+Kec.+Kuta,+Kab.+Badung,+Provinsi+Bali+80361&amp;z=10&amp;output=embed"
-                class="w-full h-full"
-                style="border:0"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                title="Majestic Marquees &amp; Tents location map"
-                allowfullscreen></iframe>
+            <!-- Google Maps is consent-gated (Location category). consent.js swaps in
+                 the iframe once the visitor accepts; the button grants + loads it. -->
+            <div data-consent-placeholder="location"
+                 data-src="https://maps.google.com/maps?ll=-8.719086,115.17545&amp;q=Jalan+Raya+Kuta+32,+Desa/Kelurahan+Kuta,+Kec.+Kuta,+Kab.+Badung,+Provinsi+Bali+80361&amp;z=10&amp;output=embed"
+                 data-title="Majestic Marquees &amp; Tents location map"
+                 data-iframe-class="w-full h-full"
+                 class="w-full h-full bg-[#e7e0cf] flex items-center justify-center text-center px-6">
+                <div class="max-w-md">
+                    <p class="text-body-s text-forest-700/80">
+                        The interactive map is hidden until you allow the &ldquo;Location map&rdquo; cookie (Google Maps).
+                    </p>
+                    <p class="text-body-s text-forest-700/55 italic mt-1">
+                        Peta interaktif disembunyikan hingga Anda mengizinkan cookie &ldquo;Peta lokasi&rdquo; (Google Maps).
+                    </p>
+                    <button type="button" data-consent-grant="location" class="btn-primary mt-4">Load map</button>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -168,10 +148,10 @@ $contactError   = ($contactStatus && !$contactOk) ? ($contactStatus['message'] ?
 <section class="section bg-[#f5f1e8]">
     <div class="container-x grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div class="relative h-[520px] sm:h-[600px]">
-            <img src="/assets/images/contact-vision-1.jpg" alt="Event Setup" class="absolute left-[15%] top-0 w-[42%] aspect-[4/3] object-cover" loading="lazy">
-            <img src="/assets/images/contact-vision-2.jpg" alt="Marquee Detail" class="absolute right-0 top-[12%] w-[55%] aspect-[4/3] object-cover" loading="lazy">
-            <img src="/assets/images/contact-vision-3.jpg" alt="Outdoor Event" class="absolute left-0 bottom-0 w-[48%] aspect-[1/1] object-cover" loading="lazy">
-            <img src="/assets/images/contact-vision-4.jpg" alt="Wedding Tent" class="absolute right-[10%] bottom-[5%] w-[35%] aspect-[4/3] object-cover" loading="lazy">
+            <img src="/assets/images/contact-vision-1.jpg" alt="<?= e(get_image_alt('images/contact-vision-1.jpg', 'Event Setup')) ?>" class="absolute left-[15%] top-0 w-[42%] aspect-[4/3] object-cover" loading="lazy">
+            <img src="/assets/images/contact-vision-2.jpg" alt="<?= e(get_image_alt('images/contact-vision-2.jpg', 'Marquee Detail')) ?>" class="absolute right-0 top-[12%] w-[55%] aspect-[4/3] object-cover" loading="lazy">
+            <img src="/assets/images/contact-vision-3.jpg" alt="<?= e(get_image_alt('images/contact-vision-3.jpg', 'Outdoor Event')) ?>" class="absolute left-0 bottom-0 w-[48%] aspect-[1/1] object-cover" loading="lazy">
+            <img src="/assets/images/contact-vision-4.jpg" alt="<?= e(get_image_alt('images/contact-vision-4.jpg', 'Wedding Tent')) ?>" class="absolute right-[10%] bottom-[5%] w-[35%] aspect-[4/3] object-cover" loading="lazy">
         </div>
 
         <div>

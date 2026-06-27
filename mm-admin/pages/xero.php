@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
+if (!defined('API_KEY'))  define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
@@ -103,43 +103,56 @@ const _jwt       = <?= $jsJwt ?>;
     <div class="bg-blue-50 rounded-2xl border border-blue-100 p-6">
         <p class="text-sm font-semibold text-blue-900">One-time app setup</p>
         <p class="mt-2 text-sm text-blue-800">
-            The following redirect URI must be registered in the Xero app
-            (Xero developer portal → your app → Configuration):
+            Register the app in the
+            <a href="https://developer.xero.com/" target="_blank" rel="noopener noreferrer"
+               class="font-medium underline hover:text-blue-900">Xero developer portal</a>,
+            then add the following redirect URI to your app
+            (your app → Configuration):
         </p>
         <code id="xero-redirect-uri" class="mt-2 block bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-900 break-all"></code>
     </div>
 
     <!-- Pay Now (custom payment URL) -->
-    <div id="xero-paynow-card" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <p class="text-sm font-semibold text-gray-900">Pay Now button <span class="text-gray-400 font-normal">(optional)</span></p>
-        <p class="mt-2 text-sm text-gray-600">
-            Only needed if you don't already collect payment through Xero (your own bank
-            account, PayPal or Stripe). This adds a <strong>Pay Now</strong> button to your
-            Xero online invoices that sends the customer to a PayPal / card checkout, then
-            marks the invoice paid automatically.
-        </p>
+    <div id="xero-paynow-card" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <button type="button" id="xero-paynow-toggle" onclick="togglePayNow()" aria-expanded="false"
+                class="w-full flex items-center justify-between gap-3 p-6 text-left">
+            <span class="text-sm font-semibold text-gray-900">Pay Now button <span class="text-gray-400 font-normal">(optional)</span></span>
+            <svg id="xero-paynow-chevron" class="w-5 h-5 text-gray-400 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
 
-        <p class="mt-4 text-sm font-medium text-gray-900">Your custom payment URL</p>
-        <div class="mt-1 flex items-stretch gap-2">
-            <code id="xero-pay-url" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 break-all"></code>
-            <button type="button" onclick="copyPayUrl()"
-                    class="shrink-0 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
-                <span id="xero-pay-copy-label">Copy</span>
-            </button>
+        <div id="xero-paynow-body" class="hidden px-6 pb-6">
+            <p class="text-sm text-gray-600">
+                Only needed if you don't already collect payment through Xero (your own bank
+                account, PayPal or Stripe). This adds a <strong>Pay Now</strong> button to your
+                Xero online invoices that sends the customer to a PayPal / card checkout, then
+                marks the invoice paid automatically.
+            </p>
+
+            <p class="mt-4 text-sm font-medium text-gray-900">Your custom payment URL</p>
+            <div class="mt-1 flex items-stretch gap-2">
+                <code id="xero-pay-url" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 break-all"></code>
+                <button type="button" onclick="copyPayUrl()"
+                        class="shrink-0 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+                    <span id="xero-pay-copy-label">Copy</span>
+                </button>
+            </div>
+
+            <ol class="mt-4 space-y-2 text-sm text-gray-600 list-decimal list-inside">
+                <li>In Xero, go to <strong>Settings → Payment services</strong>.</li>
+                <li>Click <strong>Add Payment Service → Custom Payment URL</strong>.</li>
+                <li>Paste the URL above and give it a name (e.g. “Pay online”).</li>
+                <li>Open <strong>Settings → Invoice settings → your branding theme → Edit</strong> and tick the custom payment service so the <strong>Pay Now</strong> button appears on invoices.</li>
+            </ol>
+
+            <p class="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Recording payments needs an extra Xero permission. If you connected Xero before
+                this feature was added, click <strong>Reconnect</strong> once to grant it.
+            </p>
         </div>
-
-        <ol class="mt-4 space-y-2 text-sm text-gray-600 list-decimal list-inside">
-            <li>In Xero, go to <strong>Settings → Payment services</strong>.</li>
-            <li>Click <strong>Add Payment Service → Custom Payment URL</strong>.</li>
-            <li>Paste the URL above and give it a name (e.g. “Pay online”).</li>
-            <li>Open <strong>Settings → Invoice settings → your branding theme → Edit</strong> and tick the custom payment service so the <strong>Pay Now</strong> button appears on invoices.</li>
-        </ol>
-
-        <p class="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-            Recording payments needs an extra Xero permission. If you connected Xero before
-            this feature was added, click <strong>Reconnect</strong> once to grant it.
-        </p>
     </div>
+
 
 </div>
 
@@ -229,6 +242,16 @@ const _jwt       = <?= $jsJwt ?>;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(txt).then(done, function () {});
         }
+    };
+
+    window.togglePayNow = function () {
+        const body = document.getElementById('xero-paynow-body');
+        const chev = document.getElementById('xero-paynow-chevron');
+        const btn  = document.getElementById('xero-paynow-toggle');
+        if (!body) return;
+        const open = body.classList.toggle('hidden') === false;
+        if (chev) chev.classList.toggle('rotate-180', open);
+        if (btn)  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     };
 
     window.xeroDisconnect = function () {

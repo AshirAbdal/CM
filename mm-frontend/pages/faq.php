@@ -10,25 +10,10 @@ $faqs = [
 ];
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "FAQ - Majestic Marquees & Tents",
-    "name": {
-        "description": "Answers to frequently asked questions about our marquee and stretch tent services, bookings and coverage areas.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "FAQ - Majestic Marquees & Tents",
-        "og:description": "Answers to frequently asked questions about our marquee and stretch tent services, bookings and coverage areas.",
-        "og:type": "website"
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[360px] sm:h-[420px] lg:h-[480px] overflow-hidden">
-        <img src="/assets/images/faq-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/faq-hero-bg.jpg" alt="<?= e(get_image_alt('images/faq-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-black/30"></div>
     <div class="absolute inset-0 flex items-center justify-center px-4">
@@ -75,10 +60,10 @@ $faqs = [
 <section class="section bg-[#f5f1e8]">
     <div class="container-x grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div class="relative h-[460px] sm:h-[520px]">
-            <img src="/assets/images/faq-collage-1.jpg" alt="Decorated marquee at night" class="absolute left-[24%] top-0 w-[24%] h-[22%] object-cover" loading="lazy">
-            <img src="/assets/images/faq-collage-2.jpg" alt="Large elegant outdoor marquee" class="absolute right-0 top-[4%] w-[46%] h-[46%] object-cover" loading="lazy">
-            <img src="/assets/images/faq-collage-3.jpg" alt="Evening tent event setup" class="absolute left-0 bottom-0 w-[40%] h-[48%] object-cover" loading="lazy">
-            <img src="/assets/images/faq-collage-4.jpg" alt="Small marquee exterior" class="absolute left-[46%] bottom-[2%] w-[24%] h-[18%] object-cover" loading="lazy">
+            <img src="/assets/images/faq-collage-1.jpg" alt="<?= e(get_image_alt('images/faq-collage-1.jpg', 'Decorated marquee at night')) ?>" class="absolute left-[24%] top-0 w-[24%] h-[22%] object-cover" loading="lazy">
+            <img src="/assets/images/faq-collage-2.jpg" alt="<?= e(get_image_alt('images/faq-collage-2.jpg', 'Large elegant outdoor marquee')) ?>" class="absolute right-0 top-[4%] w-[46%] h-[46%] object-cover" loading="lazy">
+            <img src="/assets/images/faq-collage-3.jpg" alt="<?= e(get_image_alt('images/faq-collage-3.jpg', 'Evening tent event setup')) ?>" class="absolute left-0 bottom-0 w-[40%] h-[48%] object-cover" loading="lazy">
+            <img src="/assets/images/faq-collage-4.jpg" alt="<?= e(get_image_alt('images/faq-collage-4.jpg', 'Small marquee exterior')) ?>" class="absolute left-[46%] bottom-[2%] w-[24%] h-[18%] object-cover" loading="lazy">
         </div>
 
         <div>

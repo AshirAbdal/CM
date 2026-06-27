@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"name": "CM (frontend / admin / blog)",
+			"path": "."
+		},
+		{
+			"name": "Whitelevel Backend (API)",
+			"path": "../backend_whitelevel"
+		}
+	],
+	"settings": {
+		// The Xero PHP SDK ships a single ~2.9 MB API class
+		// (backend/vendor/xeroapi/xero-php-oauth2/lib/Api/AccountingApi.php).
+		// Intelephense skips files above this limit (default 1 MB), so raise it
+		// to let the SDK and all backend controllers index correctly.
+		"intelephense.files.maxSize": 5000000
+	}
+}

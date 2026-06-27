@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
+if (!defined('API_KEY'))  define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
@@ -12,6 +12,57 @@ $CR_id = (int) ($_GET['CR_id'] ?? 0);
 if ($CR_id <= 0) {
     header('Location: /customer-info-details');
     exit;
+}
+
+// CSRF token (inline, matches the rest of the admin panel).
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// ── Create a new deal (server-side POST) ──────────────────────────────────
+// The "Create a new deal" form posts back here. We create one lead_submissions
+// row through the API, then redirect straight into the new deal so it behaves
+// exactly like opening any other lead. JWT stays server-side; the form carries
+// a CSRF token.
+$dealError = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_deal') {
+    if (!can('leads.manage')) {
+        http_response_code(403);
+        $dealError = 'You do not have permission to create deals.';
+    } elseif (!hash_equals($_SESSION['csrf_token'] ?? '', (string) ($_POST['csrf_token'] ?? ''))) {
+        http_response_code(403);
+        $dealError = 'Your session has expired. Please refresh and try again.';
+    } else {
+        $dealBody = json_encode([
+            'CR_id'       => $CR_id,
+            'message'     => trim((string) ($_POST['message'] ?? '')),
+            'send_survey' => !empty($_POST['send_survey']),
+            'base_url'    => ORIGIN,
+        ]);
+        $dch = curl_init(API_BASE . '/wl/admin/lead/deal');
+        curl_setopt_array($dch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $dealBody,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'X-API-Key: '            . API_KEY,
+                'Origin: '               . ORIGIN,
+                'Authorization: Bearer ' . ($_SESSION['jwt'] ?? ''),
+            ],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        $dealRes  = json_decode((string) curl_exec($dch), true);
+        $dealCode = (int) curl_getinfo($dch, CURLINFO_HTTP_CODE);
+        curl_close($dch);
+
+        if ($dealCode === 201 && !empty($dealRes['submission_id'])) {
+            header('Location: /deal?CR_id=' . $CR_id . '&submission_id=' . (int) $dealRes['submission_id']);
+            exit;
+        }
+        $dealError = (string) ($dealRes['error'] ?? 'Could not create the deal. Please try again.');
+    }
 }
 
 // Fetch full customer detail from API
@@ -139,7 +190,7 @@ $activeNav = 'leads';
         <div class="flex items-center gap-3 flex-wrap">
             <span class="text-sm font-medium px-3 py-1.5 rounded-lg border
                          <?= $isVerified ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-gray-50 text-gray-400 border-gray-200' ?>">
-                <?= $isVerified ? '&#9745;' : '&#9744;' ?> Verified
+                <?= $isVerified ? '&#9745; Verified' : '&#9744; Unverified' ?>
             </span>
             <?php if ($firstVerdict === 1): ?>
             <span class="text-sm font-medium px-3 py-1.5 rounded-lg border bg-green-50 text-green-700 border-green-200">&#9745; Qualified</span>
@@ -414,9 +465,23 @@ $activeNav = 'leads';
     </div>
 
     <!-- ── All Leads (submissions) ───────────────────────────── -->
-    <?php if (!empty($lead['notifications'])): ?>
     <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">All Leads</p>
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">All Leads</p>
+            <?php if (can('leads.manage')): ?>
+            <button type="button" onclick="openDealModal()"
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                Create a new deal
+            </button>
+            <?php endif; ?>
+        </div>
+        <?php if ($dealError !== ''): ?>
+        <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <?= e($dealError) ?>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($lead['notifications'])): ?>
         <div class="space-y-3">
             <?php foreach ($lead['notifications'] as $n):
                 $nVerified  = !empty($n['is_verified']);
@@ -464,7 +529,52 @@ $activeNav = 'leads';
             </a>
             <?php endforeach; ?>
         </div>
+        <?php else: ?>
+        <div class="text-center py-8 text-sm text-gray-400">
+            No deals yet.<?php if (can('leads.manage')): ?> Create the first one to start tracking this customer's enquiry.<?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
+
+    <?php if (can('leads.manage')): ?>
+    <!-- ── Create-a-new-deal modal ───────────────────────────── -->
+    <div id="deal-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="if(event.target===this)closeDealModal()">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div class="flex items-start justify-between gap-4 mb-1">
+                <h3 class="text-lg font-semibold text-gray-800">Create a new deal</h3>
+                <button type="button" onclick="closeDealModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <p class="text-sm text-gray-500 mb-5">A new deal for <span class="font-medium text-gray-700"><?= e($lead['name'] ?? $lead['email']) ?></span>. It opens in the deal page just like any other lead.</p>
+            <form method="post" action="/customer-info?CR_id=<?= $CR_id ?>" class="space-y-4">
+                <input type="hidden" name="action" value="create_deal">
+                <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token'] ?? '') ?>">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Enquiry details <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <textarea name="message" rows="3" maxlength="1000"
+                              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                              placeholder="What is this deal about?"></textarea>
+                </div>
+                <label class="flex items-start gap-2 text-sm text-gray-700">
+                    <input type="checkbox" name="send_survey" value="1" class="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span>Email the qualification survey to the customer now</span>
+                </label>
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeDealModal()" class="text-sm font-medium text-gray-600 hover:text-gray-800 px-4 py-2">Cancel</button>
+                    <button type="submit" class="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition">Create deal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        function openDealModal() {
+            var m = document.getElementById('deal-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+        function closeDealModal() {
+            var m = document.getElementById('deal-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+    </script>
     <?php endif; ?>
 
 </div>

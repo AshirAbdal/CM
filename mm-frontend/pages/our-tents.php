@@ -24,24 +24,9 @@ $faqs = [
 ];
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "Our Tents - Majestic Marquees & Tents",
-    "name": {
-        "description": "Explore our stretch, sailcloth and bespoke tent styles, crafted with premium QTents roofs for unforgettable events.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Our Tents - Majestic Marquees & Tents",
-        "og:description": "Explore our stretch, sailcloth and bespoke tent styles, crafted with premium QTents roofs for unforgettable events.",
-        "og:type": "website"
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative">
-    <img src="/assets/images/our-tents-hero-bg.jpg" alt="Hero Background" class="w-full h-[320px] sm:h-[360px] lg:h-[400px] object-cover" loading="lazy">
+    <img src="/assets/images/our-tents-hero-bg.jpg" alt="<?= e(get_image_alt('images/our-tents-hero-bg.jpg', 'Hero Background')) ?>" class="w-full h-[320px] sm:h-[360px] lg:h-[400px] object-cover" loading="lazy">
     <div class="absolute inset-0 bg-black/45"></div>
     <div class="absolute inset-0 z-10 flex items-center justify-center">
         <div class="container-x text-center text-white">
@@ -65,7 +50,7 @@ $faqs = [
         <?php carousel_open(); ?>
         <?php for ($i = 1; $i <= 11; $i++): ?>
             <div class="shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3 px-2">
-                <img src="/assets/images/our-tents-carousel-<?= $i ?>.jpg" alt="Tent showcase <?= $i ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
+                <img src="/assets/images/our-tents-carousel-<?= $i ?>.jpg" alt="<?= e(get_image_alt('images/our-tents-carousel-' . $i . '.jpg', 'Tent showcase ' . $i)) ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
             </div>
         <?php endfor; ?>
         <?php carousel_close(); ?>
@@ -100,7 +85,7 @@ $faqs = [
                 a top-level Netherlands-based manufacturer renowned for expertise and innovation.
             </p>
             <div class="mt-8 flex justify-end">
-                <img src="/assets/images/stretch-qtents-logo.webp" alt="QTents" class="h-[180px] w-auto object-contain" loading="lazy">
+                <img src="/assets/images/stretch-qtents-logo.webp" alt="<?= e(get_image_alt('images/stretch-qtents-logo.webp', 'QTents')) ?>" class="h-[180px] w-auto object-contain" loading="lazy">
             </div>
         </div>
 
@@ -110,7 +95,7 @@ $faqs = [
                     <h3 class="heading-m text-forest-800 mb-5"><?= e($t['name']) ?></h3>
                     <a href="<?= e($t['to']) ?>" class="spa-link group block overflow-hidden">
                         <div class="<?= e($t['aspect']) ?> overflow-hidden">
-                            <img src="/assets/images/<?= e($t['slug']) ?>.jpg" alt="<?= e($t['name']) ?>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">
+                            <img src="/assets/images/<?= e($t['slug']) ?>.jpg" alt="<?= e(get_image_alt('images/' . $t['slug'] . '.jpg', $t['name'])) ?>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">
                         </div>
                     </a>
                 </div>

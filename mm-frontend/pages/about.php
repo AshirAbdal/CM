@@ -1,23 +1,9 @@
 <?php if (!defined('APP_ENTRY')) { http_response_code(404); exit; } ?>
-<script type="application/json" id="page-meta">
-{
-    "title": "About Us - Majestic Marquees & Tents",
-    "name": {
-        "description": "Discover the story behind Majestic Marquees & Tents - superior tents and exceptional service across SE-Asia and Oceania.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "About Us - Majestic Marquees & Tents",
-        "og:description": "Discover the story behind Majestic Marquees & Tents - superior tents and exceptional service across SE-Asia and Oceania.",
-        "og:type": "website"
-    }
-}
-</script>
 
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[360px] sm:h-[420px] lg:h-[480px] overflow-hidden">
-        <img src="/assets/images/about-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/about-hero-bg.jpg" alt="<?= e(get_image_alt('images/about-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-cream-50/60"></div>
     <div class="absolute inset-0 flex items-center justify-center px-4">
@@ -64,7 +50,7 @@
     <div class="relative container-x grid lg:grid-cols-2 gap-8 items-stretch">
         <div class="bg-[#f5f1e8]/90 border border-forest-800/20 p-8 sm:p-10">
             <div class="flex flex-col items-center text-center">
-                <img src="/assets/images/about-founder-portrait.jpg" alt="Vincent Klinkenberg" class="!w-28 !h-28 rounded-full object-cover" loading="lazy">
+                <img src="/assets/images/about-founder-portrait.jpg" alt="<?= e(get_image_alt('images/about-founder-portrait.jpg', 'Vincent Klinkenberg')) ?>" class="!w-28 !h-28 rounded-full object-cover" loading="lazy">
                 <h2 class="mt-4 heading-m">Vincent Klinkenberg</h2>
             </div>
             <div class="mt-5 space-y-3 text-body text-forest-700/80">

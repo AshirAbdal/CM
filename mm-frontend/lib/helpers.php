@@ -8,8 +8,9 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-define('API_KEY',  'mq-prod-public-key-001');
+define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 define('ORIGIN',   $_is_local ? 'http://localhost:8001'   : 'https://website.majesticmarquees.clickdigim.com');
+define('BLOG_BASE', $_is_local ? 'http://localhost:8003'  : 'https://blog.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
 // ─────────────────────────────────────────────────────────────────
@@ -118,6 +119,117 @@ function get_image_url(string $filename): string
     return '/assets/' . ltrim($filename, '/') . '?v=' . $version;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Managed-image ALT text (SEO / accessibility)
+//
+// Alt text for the admin-managed site images is stored as a JSON map
+//   { "<relative-asset-path>": "<alt text>" }
+// in config/image-alt.json, which sits ABOVE the web root (blocked by
+// .htaccess) and is written by the /api/site-images endpoint when an admin
+// saves it from the Image Manager. Keys are the same relative paths used for
+// the image files themselves: "images/home-hero-bg.jpg" and "../logo.png".
+//
+// Saved alt text is constrained to IMAGE_ALT_MIN..IMAGE_ALT_MAX characters
+// (enforced server-side in save_image_alt()); pages fall back to a sensible
+// hardcoded default when no alt has been set for a slot yet.
+// ─────────────────────────────────────────────────────────────────
+const IMAGE_ALT_MIN = 100;
+const IMAGE_ALT_MAX = 150;
+
+/** Absolute path to the alt-text JSON store (above the web root). */
+function image_alt_store_path(): string
+{
+    return __DIR__ . '/../config/image-alt.json';
+}
+
+/**
+ * Load the alt-text map { relPath => alt }. Cached for the request so many
+ * <img> tags on one page do not re-read the file. Returns [] when absent.
+ */
+function load_image_alts(bool $fresh = false): array
+{
+    static $cache = null;
+    if ($cache !== null && !$fresh) {
+        return $cache;
+    }
+    $cache = [];
+    $path  = image_alt_store_path();
+    if (is_file($path)) {
+        $json = json_decode((string) file_get_contents($path), true);
+        if (is_array($json)) {
+            // Keep only string values; ignore anything malformed.
+            foreach ($json as $k => $v) {
+                if (is_string($k) && is_string($v)) {
+                    $cache[$k] = $v;
+                }
+            }
+        }
+    }
+    return $cache;
+}
+
+/**
+ * Alt text for a managed image, by its relative asset path. Falls back to
+ * $fallback (usually the existing hardcoded alt) when no alt is stored.
+ *
+ * Usage: <img ... alt="<?= e(get_image_alt('images/home-hero-bg.jpg', 'Hero')) ?>">
+ */
+function get_image_alt(string $relPath, string $fallback = ''): string
+{
+    $alts = load_image_alts();
+    $val  = isset($alts[$relPath]) ? trim((string) $alts[$relPath]) : '';
+    return $val !== '' ? $val : $fallback;
+}
+
+/**
+ * Persist alt text for one managed image. Normalises to a single trimmed
+ * line, then validates length against IMAGE_ALT_MIN..IMAGE_ALT_MAX. Writes the
+ * store atomically (temp file + rename). Returns
+ *   ['ok' => bool, 'error' => ?string, 'alt' => string]
+ * Used by the /api/site-images endpoint; never trusts the caller's length.
+ */
+function save_image_alt(string $relPath, string $alt): array
+{
+    $relPath = trim($relPath);
+    if ($relPath === '') {
+        return ['ok' => false, 'error' => 'Image path is required.', 'alt' => ''];
+    }
+    // Plain-text, single line: strip tags, collapse whitespace runs, trim.
+    $alt = trim((string) preg_replace('/\s+/u', ' ', strip_tags($alt)));
+    $len = mb_strlen($alt);
+    if ($len < IMAGE_ALT_MIN || $len > IMAGE_ALT_MAX) {
+        return [
+            'ok'    => false,
+            'error' => 'Alt text must be ' . IMAGE_ALT_MIN . '-' . IMAGE_ALT_MAX . ' characters (got ' . $len . ').',
+            'alt'   => $alt,
+        ];
+    }
+
+    $path = image_alt_store_path();
+    $dir  = dirname($path);
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        return ['ok' => false, 'error' => 'Alt-text store directory is not writable.', 'alt' => $alt];
+    }
+
+    $alts           = load_image_alts(true);
+    $alts[$relPath] = $alt;
+
+    $tmp = $path . '.tmp';
+    $ok  = file_put_contents(
+            $tmp,
+            json_encode($alts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            LOCK_EX
+        ) !== false
+        && rename($tmp, $path);
+
+    if (!$ok) {
+        @unlink($tmp);
+        return ['ok' => false, 'error' => 'Could not write the alt-text store.', 'alt' => $alt];
+    }
+    load_image_alts(true); // refresh the request cache with the new value
+    return ['ok' => true, 'error' => null, 'alt' => $alt];
+}
+
 /**
  * Build the shared tenant-authentication + tracing headers sent on every
  * backend call. Centralised so api_post() and api_get() stay in lock-step.
@@ -172,11 +284,12 @@ function api_post(string $path, array $payload): array
     curl_close($ch);
 
     $json = is_string($response) ? json_decode($response, true) : null;
+    $data = is_array($json) ? $json : [];
 
     if ($code >= 200 && $code < 300) {
-        return ['ok' => true, 'message' => $json['message'] ?? "Thank you! We'll be in touch soon."];
+        return ['ok' => true, 'message' => $json['message'] ?? "Thank you! We'll be in touch soon.", 'data' => $data];
     }
-    return ['ok' => false, 'message' => $json['message'] ?? 'Something went wrong. Please try again.'];
+    return ['ok' => false, 'message' => $json['message'] ?? 'Something went wrong. Please try again.', 'data' => $data];
 }
 
 /**
@@ -426,8 +539,18 @@ function process_form_submit(string $source, bool $requireAgree = false): array
             return ['ok' => false, 'step' => 'verify', 'email' => $email, 'message' => 'Incorrect code. Please try again.'];
         }
 
-        // Verified - create the lead from the session-stored payload (anti-tamper).
-        $res = api_post('/wl/forms/contact', $v['payload']);
+        // Code confirmed. The enquiry was already captured as an unverified lead
+        // in Step 1, so flip THAT submission to verified (its id is held in the
+        // session - never in the client - so it cannot be tampered with). If Step 1
+        // could not create the lead, fall back to creating it now as verified.
+        $submissionId = (int) ($v['submission_id'] ?? 0);
+        if ($submissionId > 0) {
+            $res = api_post('/wl/forms/verify', ['submission_id' => $submissionId]);
+        } else {
+            $payload = $v['payload'];
+            $payload['verified'] = true;
+            $res = api_post('/wl/forms/contact', $payload);
+        }
         unset($_SESSION['form_verify']);
         if ($res['ok']) {
             return ['ok' => true, 'step' => 'done', 'email' => $email, 'message' => $res['message']];
@@ -474,11 +597,22 @@ function process_form_submit(string $source, bool $requireAgree = false): array
         'code'  => $code,
     ]);
 
-    if ($res['ok']) {
-        return ['ok' => true, 'step' => 'verify', 'email' => $email, 'message' => $res['message']];
+    if (!$res['ok']) {
+        unset($_SESSION['form_verify']);
+        return ['ok' => false, 'step' => 'form', 'email' => $email, 'message' => $res['message']];
     }
-    unset($_SESSION['form_verify']);
-    return ['ok' => false, 'step' => 'form', 'email' => $email, 'message' => $res['message']];
+
+    // Capture the enquiry NOW as an unverified lead, so a visitor who never
+    // enters the emailed code is still recorded and can be chased. The new
+    // submission_id is kept server-side in the session; Step 2 flips this exact
+    // row to verified once the code is confirmed. No 'verified' key is sent, so
+    // the backend stores it as is_verified = 0.
+    $lead = api_post('/wl/forms/contact', $payload);
+    if ($lead['ok'] && !empty($lead['data']['submission_id'])) {
+        $_SESSION['form_verify']['submission_id'] = (int) $lead['data']['submission_id'];
+    }
+
+    return ['ok' => true, 'step' => 'verify', 'email' => $email, 'message' => $res['message']];
 }
 
 /**
@@ -586,6 +720,63 @@ function page_hero(string $title, string $eyebrow = '', string $subtitle = '', s
 }
 
 /**
+ * Render a numbered list of legal clauses/sections (Terms, Privacy, Cookie).
+ * Each entry: ['title' => string, 'body' => ?string, 'list' => ?array]. A list
+ * item is either a plain string or ['label' => string, 'text' => string] for a
+ * bold lead-in. Content is static and escaped with e().
+ *
+ * @param array<int,array{title:string,body?:string,list?:array<int,string|array{label:string,text:string}>}> $sections
+ */
+function render_legal_sections(array $sections): void
+{
+    echo '<ol class="list-decimal pl-5 sm:pl-6 space-y-4 text-body text-forest-800 text-justify">';
+    foreach ($sections as $s) {
+        echo '<li class="pl-1">';
+        echo '<strong class="font-semibold">' . e((string) $s['title']) . '</strong>';
+        if (!empty($s['body'])) {
+            echo ' ' . e((string) $s['body']);
+        }
+        if (!empty($s['list'])) {
+            echo '<ul class="list-disc pl-5 mt-2 space-y-1.5 text-left">';
+            foreach ($s['list'] as $item) {
+                echo '<li>';
+                if (is_array($item)) {
+                    echo '<strong class="font-semibold">' . e((string) $item['label']) . '</strong> ' . e((string) $item['text']);
+                } else {
+                    echo e((string) $item);
+                }
+                echo '</li>';
+            }
+            echo '</ul>';
+        }
+        echo '</li>';
+    }
+    echo '</ol>';
+}
+
+/**
+ * Render both language versions of a legal document stacked on the page
+ * (English first, then Bahasa Indonesia). Each version is introduced by a part
+ * heading and built from render_legal_sections. No JavaScript is required.
+ *
+ * @param array<int,array<string,mixed>> $enSections
+ * @param array<int,array<string,mixed>> $idSections
+ */
+function render_legal_bilingual(array $enSections, array $idSections, string $enLabel = 'Part 1: English Version', string $idLabel = 'Bagian 2: Versi Bahasa Indonesia'): void
+{
+    echo '<div class="space-y-12">';
+    echo '<section aria-label="' . e($enLabel) . '">';
+    echo '<h2 class="font-sans text-lg font-bold uppercase tracking-wide text-forest-800 mb-5">' . e($enLabel) . '</h2>';
+    render_legal_sections($enSections);
+    echo '</section>';
+    echo '<section aria-label="' . e($idLabel) . '">';
+    echo '<h2 class="font-sans text-lg font-bold uppercase tracking-wide text-forest-800 mb-5">' . e($idLabel) . '</h2>';
+    render_legal_sections($idSections);
+    echo '</section>';
+    echo '</div>';
+}
+
+/**
  * Render a row of colour swatches.
  *
  * @param array<int,array{name:string,hex:string}> $colors
@@ -621,6 +812,105 @@ function render_testimonials(string $heading = 'What Clients Say', ?string $subh
             <div data-testimonials<?= $attr ?>></div>
         </div>
     </section>
+    <?php
+}
+
+/**
+ * Inner markup for the customer review form (the <form> element only). Defined
+ * once and rendered inside the footer "Write a review" modal (render_review_modal),
+ * so the form lives in exactly one place. The star-rating interaction, the photo
+ * picker and the AJAX submission (POST /wl/forms/testimonial) are wired by app.js.
+ * Reviews are stored unapproved and only appear once an admin approves them, so
+ * admin approval - not an email code - is the spam gate here.
+ */
+function render_review_form_fields(): void
+{
+    ?>
+    <form data-review-form novalidate class="space-y-5">
+                <div class="grid sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-body-s font-medium text-forest-800 mb-1">Name <span class="text-tan-600">*</span></label>
+                        <input type="text" name="name" required maxlength="255" autocomplete="name"
+                               class="w-full rounded-lg border border-forest-700/20 bg-white px-4 py-2.5 text-body focus:outline-none focus:border-tan-500">
+                    </div>
+                    <div>
+                        <label class="block text-body-s font-medium text-forest-800 mb-1">Email <span class="text-tan-600">*</span></label>
+                        <input type="email" name="email" required maxlength="255" autocomplete="email"
+                               class="w-full rounded-lg border border-forest-700/20 bg-white px-4 py-2.5 text-body focus:outline-none focus:border-tan-500">
+                    </div>
+                    <div>
+                        <label class="block text-body-s font-medium text-forest-800 mb-1">Title / Role</label>
+                        <input type="text" name="title" maxlength="255" placeholder="e.g. Wedding Coordinator"
+                               class="w-full rounded-lg border border-forest-700/20 bg-white px-4 py-2.5 text-body focus:outline-none focus:border-tan-500">
+                    </div>
+                    <div>
+                        <label class="block text-body-s font-medium text-forest-800 mb-1">Company</label>
+                        <input type="text" name="company" maxlength="255" placeholder="Optional"
+                               class="w-full rounded-lg border border-forest-700/20 bg-white px-4 py-2.5 text-body focus:outline-none focus:border-tan-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-body-s font-medium text-forest-800 mb-2">Your rating <span class="text-tan-600">*</span></label>
+                    <div class="flex gap-1 text-3xl text-forest-300/40 select-none" data-review-stars>
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <button type="button" data-star="<?= $i ?>" aria-label="<?= $i ?> star<?= $i > 1 ? 's' : '' ?>" class="leading-none transition-transform hover:scale-110">&#9733;</button>
+                        <?php endfor; ?>
+                    </div>
+                    <input type="hidden" name="rating" value="0" data-review-rating>
+                </div>
+                <div>
+                    <label class="block text-body-s font-medium text-forest-800 mb-1">Your review <span class="text-tan-600">*</span></label>
+                    <textarea name="quote" rows="4" required maxlength="2000" placeholder="Tell us about your experience..."
+                              class="w-full rounded-lg border border-forest-700/20 bg-white px-4 py-2.5 text-body focus:outline-none focus:border-tan-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-body-s font-medium text-forest-800 mb-2">Your photo <span class="text-forest-700/50 font-normal">(optional)</span></label>
+                    <div class="flex items-center gap-4">
+                        <span class="shrink-0 w-16 h-16 rounded-full bg-forest-700/10 border border-forest-700/20 overflow-hidden flex items-center justify-center text-forest-700/40">
+                            <img data-review-photo-preview alt="" class="w-full h-full object-cover hidden">
+                            <svg data-review-photo-icon width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <label class="inline-block cursor-pointer rounded-lg border border-forest-700/25 bg-white px-4 py-2 text-body-s text-forest-800 hover:border-tan-500 transition-colors">
+                                <span>Choose photo</span>
+                                <input type="file" accept="image/png,image/jpeg,image/webp" data-review-photo class="hidden">
+                            </label>
+                            <button type="button" data-review-photo-clear class="ml-3 text-body-s text-red-600 hover:underline hidden">Remove</button>
+                            <p class="text-body-s text-forest-700/50 mt-1">JPG, PNG or WebP, up to 3MB.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start">
+                    <button type="submit" data-review-submit class="btn-primary">Submit review</button>
+                    <p class="text-body-s mt-3 hidden" data-review-status></p>
+                </div>
+            </form>
+    <?php
+}
+
+/**
+ * Customer review modal. A single overlay rendered once by the site layout; the
+ * footer "Write a review" button (data-review-open) opens it and app.js handles
+ * open/close, focus and the AJAX submit. Holds the shared review form
+ * (render_review_form_fields) so the markup lives in exactly one place.
+ */
+function render_review_modal(): void
+{
+    ?>
+    <div data-review-modal class="fixed inset-0 z-[120] hidden" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+        <div data-review-close class="absolute inset-0 bg-forest-900/60 backdrop-blur-sm"></div>
+        <div class="relative h-full overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6">
+            <div class="relative w-full max-w-2xl bg-cream-50 rounded-2xl shadow-xl my-8 p-6 sm:p-8">
+                <button type="button" data-review-close aria-label="Close"
+                        class="absolute right-4 top-4 w-9 h-9 rounded-full flex items-center justify-center text-forest-700/70 hover:bg-forest-700/10 hover:text-forest-800 transition-colors text-2xl leading-none">&times;</button>
+                <div class="text-center mb-6 pr-8">
+                    <h2 id="review-modal-title" class="heading-l">Share your experience</h2>
+                    <h3 class="mt-3 text-forest-700/80 italic text-secondary-ttl">Worked with us? We would love to hear about it. Your review appears once approved.</h3>
+                </div>
+                <?php render_review_form_fields(); ?>
+            </div>
+        </div>
+    </div>
     <?php
 }
 

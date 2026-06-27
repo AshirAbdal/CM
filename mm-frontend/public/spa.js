@@ -41,6 +41,19 @@
         });
     }
 
+    // Update <link rel="..."> tags (canonical)
+    if (meta.link) {
+        Object.keys(meta.link).forEach(function (rel) {
+            var el = document.querySelector('link[rel="' + rel + '"]');
+            if (!el) {
+                el = document.createElement('link');
+                el.setAttribute('rel', rel);
+                document.head.appendChild(el);
+            }
+            el.setAttribute('href', meta.link[rel]);
+        });
+    }
+
     // Update schema.org structured data
     if (meta.schema) {
         var existingSchema = document.querySelector('script[type="application/ld+json"]');

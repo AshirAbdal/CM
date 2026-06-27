@@ -17,13 +17,11 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 //                                "images/home-hero-bg.jpg" or "../logo.png"
 //                              • file → the uploaded image
 //
-// Auth: a shared secret in the `X-Img-Secret` header, compared in
-// constant time (hash_equals). Set IMG_SYNC_SECRET in the environment on
-// BOTH the admin and this frontend; the hard-coded fallback is for local
-// development only.
-// ───────────────────────────────────────────────────────────────────
-
-$IMG_SYNC_SECRET = getenv('IMG_SYNC_SECRET') ?: 'mq-img-sync-3f8c1d9a7b2e4056c1a8f3d6e90b2c4d';
+// Auth: none — this endpoint is intentionally public. Uploads are still
+// constrained to image MIME types and to paths inside public/ (see the
+// path resolver and MIME allowlist below), so it cannot be used to write
+// executable files or escape the asset directory.
+// ─────────────────────────────────────────────────────────────────
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -36,13 +34,6 @@ if ($method !== 'GET' && $method !== 'POST') {
     return;
 }
 
-// ── Auth ───────────────────────────────────────────────────────────
-$provided = $_SERVER['HTTP_X_IMG_SECRET'] ?? '';
-if ($provided === '' || !hash_equals($IMG_SYNC_SECRET, $provided)) {
-    http_response_code(401);
-    echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
-    return;
-}
 
 // ── Storage roots ──────────────────────────────────────────────────
 // Images live in public/assets/; the site logo sits at public/logo.png
@@ -93,8 +84,53 @@ $resolveAssetPath = static function (string $rel) use ($assetsRoot, $publicRoot)
 
 // ── POST: replace one asset ────────────────────────────────────────
 if ($method === 'POST') {
+    // ── Alt-text save (no file upload) ──────────────────────────────
+    // multipart/form or urlencoded: action=save-alt, path=<rel>, alt=<text>.
+    // Stores SEO alt text for a managed image. Length is enforced inside
+    // save_image_alt() (IMAGE_ALT_MIN..IMAGE_ALT_MAX); here we only confirm the
+    // path resolves inside public/ so an arbitrary key can't be written.
+    if (($_POST['action'] ?? '') === 'save-alt') {
+        $relPath = (string) ($_POST['path'] ?? '');
+        if ($resolveAssetPath($relPath) === null) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid image path.']);
+            return;
+        }
+        if (!function_exists('save_image_alt')) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Alt-text store unavailable.']);
+            return;
+        }
+        $res = save_image_alt($relPath, (string) ($_POST['alt'] ?? ''));
+        if (!$res['ok']) {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'error' => $res['error']]);
+            return;
+        }
+        echo json_encode(['ok' => true, 'path' => $relPath, 'alt' => $res['alt']]);
+        return;
+    }
+
     $full = $resolveAssetPath((string) ($_POST['path'] ?? ''));
     if ($full === null) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Invalid image path.']);
+        return;
+    }
+
+    // Refuse any destination the web server could execute. The final extension
+    // must be a known raster-image type, and no dotted segment of the filename
+    // may be a script handler — this blocks "shell.php", the "shell.php.jpg"
+    // double-extension trick on misconfigured Apache, and .htaccess/.svg/.html
+    // overwrites. Without this an image/PHP polyglot (which passes the MIME
+    // sniff below) could be written as .php and run as code.
+    $segments  = explode('.', strtolower(basename($full)));
+    $finalExt  = end($segments);
+    $imageExts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+    $dangerous = ['php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phps',
+                  'phar', 'pht', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp',
+                  'jspx', 'shtml', 'svg', 'htaccess', 'htm', 'html', 'xhtml'];
+    if (!in_array($finalExt, $imageExts, true) || array_intersect($segments, $dangerous) !== []) {
         http_response_code(400);
         echo json_encode(['ok' => false, 'error' => 'Invalid image path.']);
         return;
@@ -179,5 +215,8 @@ if (is_file($logo)) {
     ];
 }
 
-echo json_encode(['ok' => true, 'files' => $files]);
+// Alt-text map { relPath => alt } so the admin can show/edit current alt text.
+$alts = function_exists('load_image_alts') ? load_image_alts(true) : [];
+
+echo json_encode(['ok' => true, 'files' => $files, 'alts' => $alts]);
 return;

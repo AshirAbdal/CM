@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
+if (!defined('API_KEY'))  define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
@@ -43,16 +43,10 @@ $activeNav = 'lead-management';
 {"title": "Make Offer | Majestic Marquees Admin"}
 </script>
 
-<style>
-@media (min-width:1280px) {
-    .inv-col { height: calc(100vh - 190px); }
-}
-</style>
-
 <!-- Dialog-style offer builder -->
 <div class="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm" aria-hidden="true"></div>
 
-<div class="relative z-50 mx-auto w-full max-w-[2320px] px-1 sm:px-2">
+<div class="relative z-50 mx-auto w-full max-w-6xl px-1 sm:px-2">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
 
         <!-- Dialog header -->
@@ -69,10 +63,10 @@ $activeNav = 'lead-management';
         </div>
 
         <div class="p-5 sm:p-7 bg-slate-50">
-            <div class="grid grid-cols-1 xl:grid-cols-[5fr_2fr] gap-8">
+            <div class="flex flex-col gap-8">
 
-            <!-- ══ LEFT: Editable Invoice Preview ══════════════════════════════════ -->
-            <div class="inv-col flex flex-col" style="min-height:600px;">
+            <!-- ══ Invoice Preview (below) ══════════════════════════════════ -->
+            <div class="flex flex-col order-2" style="min-height:600px;">
                 <div class="mb-4 flex items-start justify-between flex-wrap gap-3">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800">Invoice Preview</h2>
@@ -80,7 +74,6 @@ $activeNav = 'lead-management';
                     </div>
                     <div class="flex gap-2" id="invoiceActions" style="display:none!important;">
                         <button onclick="clearInvoice()" class="text-xs border border-slate-200 text-slate-500 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition">Clear</button>
-                        <button onclick="copyInvoiceJSON()" class="text-xs border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition">Copy JSON</button>
                         <button onclick="printInvoice()" class="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">Print / Save PDF</button>
                     </div>
                 </div>
@@ -89,6 +82,12 @@ $activeNav = 'lead-management';
                 <div id="invDraftBanner" class="hidden mb-3 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-sm">
                     <span>&#8617; <span id="invDraftMsg">Unsaved draft restored.</span></span>
                     <button type="button" onclick="discardDraft()" class="text-xs px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 hover:bg-amber-100 transition whitespace-nowrap">Discard draft</button>
+                </div>
+
+                <!-- Revising-a-prior-offer banner -->
+                <div id="invReviseBanner" class="hidden mb-3 flex items-start gap-2 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg px-3 py-2 text-sm">
+                    <span class="shrink-0">&#128221;</span>
+                    <span id="invReviseMsg">Revising a previous offer.</span>
                 </div>
                 <!-- Autosave status -->
                 <div id="invDraftStatus" class="hidden mb-2 text-[11px] text-slate-400"></div>
@@ -111,7 +110,6 @@ $activeNav = 'lead-management';
                         <span class="text-xs text-slate-400 font-medium uppercase tracking-wide">Estimate</span>
                         <div class="flex flex-wrap gap-1.5">
                             <button onclick="clearInvoice()" class="text-xs border border-slate-200 text-slate-500 px-2.5 py-1 rounded-lg hover:bg-white transition">Clear</button>
-                            <button onclick="copyInvoiceJSON()" class="text-xs border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg hover:bg-white transition">Copy JSON</button>
                             <button onclick="saveEstimate()" id="invSaveBtn" class="text-xs border border-primary text-primary px-3 py-1 rounded-lg hover:bg-blue-50 transition">Save</button>
                             <button onclick="sendEstimateEmail()" id="invSendEmailBtn" class="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition">Send Email</button>
                             <button onclick="printInvoice()" class="text-xs bg-primary text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition">Print / PDF</button>
@@ -234,12 +232,12 @@ $activeNav = 'lead-management';
                         <div class="overflow-x-auto mb-2">
                             <table class="w-full text-sm">
                                 <thead>
-                                    <tr class="border-b-2 border-slate-800 text-[10px] text-slate-400 uppercase tracking-wide">
+                                    <tr class="border-b-2 border-slate-800 text-xs text-slate-500 uppercase tracking-wide">
                                         <th class="pb-2 text-left font-semibold">Item Name</th>
-                                        <th class="pb-2 text-right font-semibold w-24">Price</th>
-                                        <th class="pb-2 text-center font-semibold w-14">QTY</th>
-                                        <th class="pb-2 text-center font-semibold w-16">TAX</th>
-                                        <th class="pb-2 text-right font-semibold w-24">Subtotal</th>
+                                        <th class="pb-2 text-right font-semibold w-28">Price</th>
+                                        <th class="pb-2 text-center font-semibold w-20">QTY</th>
+                                        <th class="pb-2 text-center font-semibold w-24">TAX</th>
+                                        <th class="pb-2 text-right font-semibold w-32">Subtotal</th>
                                         <th class="pb-2 w-6"></th>
                                     </tr>
                                 </thead>
@@ -283,8 +281,8 @@ $activeNav = 'lead-management';
                 </div>
             </div>
 
-            <!-- ══ RIGHT: AI Chat ════════════════════════════════════════════════════ -->
-            <div class="inv-col flex flex-col" style="min-height:600px;">
+            <!-- ══ AI Chat (top) ════════════════════════════════════════════════════ -->
+            <div class="flex flex-col order-1" style="height:520px;">
                 <div class="mb-4">
                     <h2 class="text-2xl font-bold text-slate-800">AI Invoice Assistant</h2>
                     <p class="text-slate-500 mt-1 text-sm">Describe what you need - AI will build the invoice from your product catalogue.</p>
@@ -305,7 +303,34 @@ $activeNav = 'lead-management';
                         </div>
                     </div>
                     <div class="border-t border-slate-200 p-3 bg-white flex-shrink-0">
+                        <!-- Attached transcript / document chip -->
+                        <div id="chatAttachment" class="hidden mb-2 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm">
+                            <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            <span id="chatAttachmentName" class="text-slate-700 font-medium truncate"></span>
+                            <span id="chatAttachmentSize" class="text-slate-400 text-xs flex-shrink-0"></span>
+                            <button type="button" onclick="clearChatAttachment()" title="Remove file" class="ml-auto text-slate-400 hover:text-red-500 transition flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <!-- Voice listening indicator -->
+                        <div id="chatVoiceHint" class="hidden mb-2 items-center gap-2 text-xs text-red-500">
+                            <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>
+                            Recording… speak now, tap the mic again to send.
+                        </div>
                         <div class="flex gap-2 items-end">
+                            <input type="file" id="chatFileInput" class="hidden"
+                                   accept=".txt,.text,.md,.markdown,.vtt,.srt,.csv,.log,.json,.pdf,.wav,.mp3,.m4a,.aac,.aiff,.ogg,.flac,text/plain,application/pdf,text/csv,text/markdown,audio/*"
+                                   onchange="onChatFileSelected(event)">
+                            <button type="button" id="attachBtn" title="Attach a meeting transcript (.txt, .vtt, .srt, .csv, .md, .pdf)"
+                                    onclick="document.getElementById('chatFileInput').click()"
+                                    class="flex-shrink-0 w-10 h-[38px] flex items-center justify-center border border-slate-200 rounded-lg text-slate-500 hover:text-primary hover:border-primary transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            </button>
+                            <button type="button" id="micBtn" title="Dictate with your voice"
+                                    onclick="toggleVoiceInput()"
+                                    class="flex-shrink-0 w-10 h-[38px] flex items-center justify-center border border-slate-200 rounded-lg text-slate-500 hover:text-primary hover:border-primary transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z"/></svg>
+                            </button>
                             <textarea id="chatInput" rows="1"
                                    placeholder="e.g. Create an invoice for Stretch 4.5x4.5…"
                                    class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none overflow-hidden"
@@ -319,7 +344,7 @@ $activeNav = 'lead-management';
                                 Send
                             </button>
                         </div>
-                        <p class="text-xs text-slate-400 mt-1.5">Powered by Gemini AI · Based on your uploaded product catalogue · <span class="text-slate-300">Shift+Enter for new line</span></p>
+                        <p class="text-xs text-slate-400 mt-1.5">Powered by Gemini AI · Attach a meeting transcript or dictate with the mic · <span class="text-slate-300">Shift+Enter for new line</span></p>
                     </div>
                 </div>
             </div>
@@ -432,6 +457,15 @@ function invTaxTypeChange(sel) {
 let chatHistory    = [];
 let currentInvoice = null;
 
+// Attached meeting transcript / document for the next AI message, plus voice state.
+let attachedFile   = null;  // { name, mime_type, data(base64), size }
+let mediaRecorder  = null;  // MediaRecorder instance while recording
+let mediaStream    = null;  // active getUserMedia stream (so we can stop tracks)
+let recChunks      = [];    // recorded audio Blob parts
+let recording      = false; // currently capturing audio
+let autoSend       = false; // send the message as soon as the clip is ready
+let voiceSupported = false; // MediaRecorder + getUserMedia + AudioContext present
+
 // Persist the AI conversation per deal so it survives closing/reopening the page.
 const CHAT_PREFIX = 'mm_invoice_chat_v1:';
 function _chatScope() {
@@ -468,30 +502,257 @@ function restoreChatHistory() {
     saved.forEach(m => appendBubble(m.role === 'user' ? 'user' : 'model', m.text));
 }
 
+// ── Transcript / document upload ────────────────────────────────────────
+const CHAT_FILE_MAX = 8 * 1024 * 1024; // 8 MB
+const CHAT_FILE_EXT = ['txt','text','md','markdown','vtt','srt','csv','log','json','pdf','wav','mp3','mpga','m4a','aac','aiff','aif','ogg','oga','flac'];
+
+function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+}
+
+function onChatFileSelected(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = '';                       // allow re-picking the same file later
+    if (!file) return;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!CHAT_FILE_EXT.includes(ext)) {
+        appendBubble('model', '⚠️ Unsupported file type. Upload a transcript (.txt, .vtt, .srt, .csv, .md, .json), an audio clip (.wav, .mp3, .m4a, .ogg), or a PDF.');
+        return;
+    }
+    if (file.size > CHAT_FILE_MAX) {
+        appendBubble('model', '⚠️ That file is too large (max 8 MB).');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        const base64 = String(reader.result).split(',')[1] || '';  // strip data: prefix
+        attachedFile = {
+            name: file.name,
+            mime_type: file.type || (ext === 'pdf' ? 'application/pdf' : 'text/plain'),
+            data: base64,
+            size: file.size,
+        };
+        document.getElementById('chatAttachmentName').textContent = file.name;
+        document.getElementById('chatAttachmentSize').textContent = formatBytes(file.size);
+        document.getElementById('chatAttachment').classList.remove('hidden');
+    };
+    reader.onerror = () => appendBubble('model', '⚠️ Could not read that file. Please try again.');
+    reader.readAsDataURL(file);
+}
+
+function clearChatAttachment() {
+    attachedFile = null;
+    const chip = document.getElementById('chatAttachment');
+    if (chip) chip.classList.add('hidden');
+    const inp = document.getElementById('chatFileInput');
+    if (inp) inp.value = '';
+}
+
+// ── Voice capture (MediaRecorder -> 16kHz mono WAV -> Gemini audio) ───────────────────────────────────
+function setupVoiceCapture() {
+    voiceSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+        && window.MediaRecorder && (window.AudioContext || window.webkitAudioContext));
+    const micBtn = document.getElementById('micBtn');
+    if (!voiceSupported && micBtn) {
+        micBtn.classList.add('opacity-50');
+        micBtn.title = 'Voice recording is not available in this browser';
+    }
+}
+
+async function toggleVoiceInput() {
+    if (!voiceSupported) {
+        appendBubble('model', '⚠️ Voice recording is not available in this browser. Please type your request or attach a transcript instead.');
+        return;
+    }
+    if (recording) { stopRecording(true); return; }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        startRecording(stream);
+    } catch (err) {
+        const name = (err && err.name) ? err.name : '';
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+            appendBubble('model', '⚠️ Microphone access is blocked. Allow mic permission for this site in your browser, then tap the mic again.');
+        } else if (name === 'NotFoundError') {
+            appendBubble('model', '⚠️ No microphone was found. Plug one in or check your system settings, then try again.');
+        } else {
+            appendBubble('model', '⚠️ Could not start recording. Please try again.');
+        }
+    }
+}
+
+function startRecording(stream) {
+    mediaStream = stream;
+    recChunks   = [];
+    try {
+        mediaRecorder = new MediaRecorder(stream);
+    } catch (_) {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    }
+    mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+    mediaRecorder.onstop = handleRecordingStop;
+    mediaRecorder.start();
+    recording = true;
+    setVoiceUI(true);
+}
+
+function stopRecording(doSend) {
+    autoSend  = !!doSend;
+    recording = false;
+    setVoiceUI(false);
+    try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch (_) {}
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+}
+
+function setVoiceUI(on) {
+    const micBtn = document.getElementById('micBtn');
+    const hint   = document.getElementById('chatVoiceHint');
+    if (micBtn) {
+        micBtn.classList.toggle('text-red-500', on);
+        micBtn.classList.toggle('border-red-300', on);
+        micBtn.classList.toggle('bg-red-50', on);
+        micBtn.classList.toggle('text-slate-500', !on);
+    }
+    if (hint) { hint.classList.toggle('hidden', !on); hint.classList.toggle('flex', on); }
+}
+
+async function handleRecordingStop() {
+    const send = autoSend; autoSend = false;
+    if (!recChunks.length) return;
+    const blob = new Blob(recChunks, { type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm' });
+    recChunks = [];
+    let wavB64;
+    try {
+        wavB64 = await blobToWavBase64(blob);
+    } catch (_) {
+        appendBubble('model', '⚠️ Could not process the recording. Please try again.');
+        return;
+    }
+    const bytes = Math.floor(wavB64.length * 3 / 4);
+    if (bytes > CHAT_FILE_MAX) {
+        appendBubble('model', '⚠️ That recording is too long (max about 4 minutes). Please record a shorter message.');
+        return;
+    }
+    attachedFile = { name: 'voice-message.wav', mime_type: 'audio/wav', data: wavB64, size: bytes };
+    showAttachmentChip('Voice message', bytes);
+    if (send) sendMessage();
+}
+
+function showAttachmentChip(label, bytes) {
+    document.getElementById('chatAttachmentName').textContent = label;
+    document.getElementById('chatAttachmentSize').textContent = formatBytes(bytes);
+    document.getElementById('chatAttachment').classList.remove('hidden');
+}
+
+// Decode the recorded clip, downmix to mono and resample to 16kHz, then encode
+// a standard 16-bit PCM WAV - the format Gemini transcribes most reliably.
+async function blobToWavBase64(blob) {
+    const arrayBuf = await blob.arrayBuffer();
+    const AC  = window.AudioContext || window.webkitAudioContext;
+    const ac  = new AC();
+    const decoded = await decodeAudio(ac, arrayBuf);
+    try { ac.close(); } catch (_) {}
+    const targetRate = 16000;
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const frames = Math.max(1, Math.ceil(decoded.duration * targetRate));
+    const off = new OAC(1, frames, targetRate);
+    const src = off.createBufferSource();
+    src.buffer = decoded;
+    src.connect(off.destination);
+    src.start(0);
+    const rendered = await off.startRendering();
+    const wav = encodeWav(rendered.getChannelData(0), targetRate);
+    return arrayBufferToBase64(wav);
+}
+
+function decodeAudio(ctx, arrayBuf) {
+    return new Promise((resolve, reject) => {
+        const p = ctx.decodeAudioData(arrayBuf, resolve, reject);
+        if (p && typeof p.then === 'function') p.then(resolve, reject);
+    });
+}
+
+function encodeWav(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view   = new DataView(buffer);
+    const writeStr = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);             // PCM chunk size
+    view.setUint16(20, 1, true);              // audio format = PCM
+    view.setUint16(22, 1, true);              // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byte rate
+    view.setUint16(32, 2, true);              // block align
+    view.setUint16(34, 16, true);             // bits per sample
+    writeStr(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    let off = 44;
+    for (let i = 0; i < samples.length; i++, off += 2) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return buffer;
+}
+
+function arrayBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+}
+
 async function sendMessage() {
     const input   = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
     const sendIcon= document.getElementById('sendIcon');
     const loadIcon= document.getElementById('loadingIcon');
     const message = input.value.trim();
-    if (!message) return;
+    const fileToSend = attachedFile;             // capture the attached transcript (if any)
+    if (!message && !fileToSend) return;
+    if (recording) { stopRecording(false); }
 
-    appendBubble('user', message);
+    // Show the user's turn (with the attached filename, if any)
+    const fileLabel  = fileToSend ? ((fileToSend.mime_type || '').indexOf('audio/') === 0 ? '🎤 Voice message' : '📎 ' + fileToSend.name) : '';
+    const bubbleText = (message || '') + (fileToSend ? (message ? '\n' : '') + fileLabel : '');
+    appendBubble('user', bubbleText);
     input.value = '';
     input.style.height = '38px';
+    clearChatAttachment();                       // chip clears as soon as it's sent
     sendBtn.disabled = true;
     sendIcon.classList.add('hidden');
     loadIcon.classList.remove('hidden');
 
+    // Client-side safety cap so a stuck request surfaces a clear timeout message
+    // instead of spinning forever.
+    const _ctrl = new AbortController();
+    const _timeoutId = setTimeout(() => _ctrl.abort(), 90000);
     try {
+        const payload = { message, history: chatHistory };
+        // Send the invoice the admin is currently working on so the AI edits it
+        // (adds/removes/changes items) instead of rebuilding from scratch and
+        // wiping the existing line items.
+        const _curInv = buildInvoiceFromEditor();
+        if (_curInv && Array.isArray(_curInv.items) && _curInv.items.length) {
+            payload.current_invoice = _curInv;
+        }
+        if (fileToSend) payload.file = { name: fileToSend.name, mime_type: fileToSend.mime_type, data: fileToSend.data };
         const res = await fetch(API_BASE + '/wl/admin/products/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY, 'Origin': ORIGIN, 'Authorization': 'Bearer ' + JWT },
-            body: JSON.stringify({ message, history: chatHistory }),
+            body: JSON.stringify(payload),
+            signal: _ctrl.signal,
         });
-        const data = await res.json();
-        if (!res.ok) { appendBubble('model', '⚠️ ' + (data.error || 'Something went wrong.')); return; }
-        chatHistory.push({ role: 'user', text: message });
+        let data = {};
+        try { data = await res.json(); } catch (_) { data = {}; }
+        if (!res.ok) { appendBubble('model', '⚠️ ' + (data.error || chatErrorForStatus(res.status))); return; }
+        chatHistory.push({ role: 'user', text: bubbleText });
         chatHistory.push({ role: 'model', text: data.reply });
         saveChatHistory();
 
@@ -523,15 +784,76 @@ async function sendMessage() {
         appendBubble('model', cleanReply || (invoice ? 'Invoice generated! See the Invoice Preview on the left.' : data.reply));
 
         if (invoice) {
+            // The AI invoice usually only describes line items, so it omits the
+            // "Billed to" details. Carry over whatever the admin already entered.
+            const curName  = document.getElementById('invCustomer').value;
+            const curEmail = document.getElementById('invEmail').value;
+            const curAddr  = document.getElementById('invAddress').value;
+            if (invSubmissionId && invSubmissionId > 0) {
+                // Opened from a deal: the lead is authoritative. The AI must never
+                // overwrite the "Billed to" name/email/address.
+                if (curName)  invoice.customer_name    = curName;
+                if (curEmail) invoice.customer_email   = curEmail;
+                if (curAddr)  invoice.customer_address = curAddr;
+            } else {
+                // No deal: keep the admin's entry and drop any placeholder name
+                // the model may have invented.
+                if (!invoice.customer_name || isPlaceholderName(invoice.customer_name))
+                                               invoice.customer_name    = curName;
+                if (!invoice.customer_email)   invoice.customer_email   = curEmail;
+                if (!invoice.customer_address) invoice.customer_address = curAddr;
+            }
+            // The AI only returns name/qty/price per line. For items that were
+            // already on the invoice, carry over the richer fields it does not
+            // echo back (per-line discounts and the Xero account / tax codes) so
+            // an edit does not silently reset them.
+            const _norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            const _prevByName = {};
+            (_curInv.items || []).forEach(it => {
+                const k = _norm(it.name);
+                if (k) _prevByName[k] = it;
+            });
+            (invoice.items || []).forEach(it => {
+                const prev = _prevByName[_norm(it.name)];
+                if (!prev) return;
+                if (it.discount_percentage == null) it.discount_percentage = prev.discount_percentage;
+                if (it.discount_flat == null)       it.discount_flat       = prev.discount_flat;
+                if (it.tax_pct == null)             it.tax_pct             = prev.tax_pct;
+                if (!it.account_code)               it.account_code        = prev.account_code;
+                if (!it.tax_type)                   it.tax_type            = prev.tax_type;
+                if (it.non_discountable == null)    it.non_discountable    = prev.non_discountable;
+            });
             currentInvoice = invoice;
             loadInvoiceIntoEditor(invoice);
         }
     } catch (err) {
-        appendBubble('model', '⚠️ Network error: ' + err.message);
+        if (err && err.name === 'AbortError') {
+            appendBubble('model', '⚠️ The assistant took too long to respond. Please try again, or ask for a smaller invoice.');
+        } else {
+            appendBubble('model', '⚠️ Could not reach the assistant. Please check your connection and try again.');
+        }
     } finally {
+        clearTimeout(_timeoutId);
         sendBtn.disabled = false;
         sendIcon.classList.remove('hidden');
         loadIcon.classList.add('hidden');
+    }
+}
+
+// Friendly fallback message for an HTTP error status when the backend did not
+// return its own { error } text.
+function chatErrorForStatus(status) {
+    switch (status) {
+        case 401:
+        case 403: return 'Your session has expired. Please sign in again.';
+        case 413: return 'That attachment is too large. Please use a file under 8 MB.';
+        case 415: return 'That file type is not supported. Attach a transcript (.txt, .vtt, .srt, .csv, .md, .json), a voice recording, or a PDF.';
+        case 422: return 'The assistant could not process that request. Please rephrase and try again.';
+        case 429: return 'The assistant is busy right now (usage limit reached). Please wait a moment and try again.';
+        case 500: return 'Something went wrong on the server. Please try again.';
+        case 503: return 'The assistant is temporarily unavailable. Please try again in a few seconds.';
+        case 504: return 'The assistant took too long to respond. Please try again, or ask for a smaller invoice.';
+        default:  return 'Something went wrong. Please try again.';
     }
 }
 
@@ -546,7 +868,7 @@ function appendBubble(role, text) {
             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347a3.75 3.75 0 00-1.097 2.65v.5a2 2 0 01-2 2h-1a2 2 0 01-2-2v-.5a3.75 3.75 0 00-1.097-2.65l-.347-.347z"/></svg>
             </div>
-            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm text-slate-700 whitespace-pre-wrap">${escHtml(text)}</div>`;
+            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm text-slate-700 whitespace-pre-wrap">${escHtml(mdToPlain(text))}</div>`;
     } else {
         wrapper.innerHTML = `<div class="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-sm text-sm whitespace-pre-wrap">${escHtml(text)}</div>`;
     }
@@ -807,6 +1129,61 @@ async function restoreOfferDraftServer() {
     } catch (_) { return false; }
 }
 
+// ── Revise a previously saved/sent offer ──────────────────────────────────────
+// When the page is opened with ?est_id=, load that estimate's content back into
+// the editor so the admin can adjust it (e.g. after the lead asked for a change)
+// and send a revised offer. The original offer is NOT modified: we deliberately
+// leave invCurrentId null so saving creates a new offer version, regenerate the
+// estimate number, reset the status to draft and refresh the dates. The prior
+// offer stays on record and the pipeline advances on the next send.
+async function reviseFromEstimate(estId) {
+    try {
+        const res = await fetch(API_BASE + '/wl/admin/estimates/' + estId, {
+            headers: { 'X-API-Key':API_KEY, 'Origin':ORIGIN, 'Authorization':'Bearer '+JWT },
+        });
+        if (!res.ok) return false;
+        const e = await res.json();
+        if (!e || !Array.isArray(e.items)) return false;
+
+        loadInvoiceIntoEditor({
+            customer_name:    e.customer_name,
+            customer_email:   e.customer_email,
+            customer_address: e.customer_address,
+            estimate_no:      '',
+            currency:         e.currency,
+            line_amount_type: e.line_amount_type,
+            notes:            e.notes,
+            freight:          e.freight,
+            items:            e.items,
+            status:           'draft',
+        });
+
+        // Fresh document identity + dates for the revised offer.
+        document.getElementById('invEstimateNo').value = 'EST-' + Date.now().toString().slice(-4);
+        document.getElementById('invDate').value = new Date().toISOString().slice(0,10);
+        syncExpiryFromIssue();
+        const due = new Date(); due.setDate(due.getDate() + 14);
+        document.getElementById('invDueDate').value = due.toISOString().slice(0,10);
+        invCurrentId = null; // save -> POST a brand-new offer version
+
+        const banner = document.getElementById('invReviseBanner');
+        const msg    = document.getElementById('invReviseMsg');
+        if (msg) {
+            const priorNo = (e.estimate_no || '').trim();
+            let html = 'Revising ' + (priorNo ? '<strong>' + escHtml(priorNo) + '</strong>' : 'a previous offer')
+                     + '. Saving or sending creates a new offer version; the original stays on record.';
+            const cr = (e.change_request || '').trim();
+            if (cr) {
+                html += '<br><span class="text-[12px] text-indigo-600">Lead\u2019s change request: '
+                      + escHtml(cr) + '</span>';
+            }
+            msg.innerHTML = html;
+        }
+        if (banner) banner.classList.remove('hidden');
+        return true;
+    } catch (_) { return false; }
+}
+
 // Autosave on any edit inside the invoice editor; flush before leaving the page.
 ['input', 'change'].forEach(function (evt) {
     document.addEventListener(evt, function (e) {
@@ -818,10 +1195,12 @@ window.addEventListener('beforeunload', saveDraftNow);
 
 // Also expose a blank-editor start path
 document.addEventListener('DOMContentLoaded', async () => {
+    setupVoiceCapture();
     document.getElementById('invDate').value = new Date().toISOString().slice(0,10);
-    // Set default expiry 15 days out
-    const exp = new Date(); exp.setDate(exp.getDate() + 15);
-    document.getElementById('invExpiry').value = exp.toISOString().slice(0,10);
+    // Expiry is 5 working days after the issue date (skips weekends); it also
+    // recomputes whenever the admin changes the issue date.
+    syncExpiryFromIssue();
+    document.getElementById('invDate').addEventListener('change', syncExpiryFromIssue);
     // Default due date 14 days out (Xero invoices require a due date)
     const _due = new Date(); _due.setDate(_due.getDate() + 14);
     document.getElementById('invDueDate').value = _due.toISOString().slice(0,10);
@@ -839,9 +1218,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const _sid = parseInt(_q.get('submission_id') || '0', 10);
     if (_sid > 0) {
         invSubmissionId = _sid;
-        if (_q.get('name'))    document.getElementById('invCustomer').value = _q.get('name');
-        if (_q.get('email'))   document.getElementById('invEmail').value    = _q.get('email');
-        if (_q.get('address')) document.getElementById('invAddress').value  = _q.get('address');
+        // Opened from a deal: prefill the "Billed to" details from the lead
+        // (name/email, plus address from Apollo.io when present). These remain
+        // editable so the admin can adjust them for this offer.
+        const _prefillFromDeal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val) el.value = val;
+        };
+        _prefillFromDeal('invCustomer', _q.get('name'));
+        _prefillFromDeal('invEmail',    _q.get('email'));
+        _prefillFromDeal('invAddress',  _q.get('address'));
         const banner = document.getElementById('invDealBanner');
         if (banner) { banner.classList.remove('hidden'); }
     }
@@ -850,8 +1236,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // server copy (follows the admin across devices) and fall back to the local
     // browser copy if there's nothing saved server-side or the request fails.
     // The "new" scope (no deal yet) is browser-only.
+    //
+    // Exception: when opened with ?est_id= the admin explicitly chose to revise a
+    // specific prior offer, so that wins over any stale autosaved draft.
     let _restored = false;
-    if (_hasServerScope()) {
+    const _estId = parseInt(_q.get('est_id') || '0', 10);
+    if (_estId > 0) {
+        _restored = await reviseFromEstimate(_estId);
+    }
+    if (!_restored && _hasServerScope()) {
         _restored = await restoreOfferDraftServer();
     }
     if (!_restored) {
@@ -859,9 +1252,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         restoreChatHistory();
     }
 
-    // The lead's contact details are the authoritative "Billed to". A restored
-    // draft may not carry them (or saved them empty), so backfill any contact
-    // field that ended up blank from the deal's URL params.
+    // The lead's contact details prefill the "Billed to". After a draft restore,
+    // only backfill fields that ended up empty so the admin's own edits (saved in
+    // the draft) are preserved.
     if (_sid > 0) {
         const _fillIfEmpty = (id, val) => {
             const el = document.getElementById(id);
@@ -924,22 +1317,22 @@ function invAppendRow(name = '', qty = 1, price = 0, disc = 0, flat = 0, tax = 0
                 </div>
             </div>
         </td>
-        <td class="py-2 pr-3 w-24">
+        <td class="py-2 pr-3 w-28">
             <input type="number" value="${Number(price).toFixed(2)}" min="0" step="0.01" oninput="invRecalc()"
-                   class="inv-price w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+                   class="inv-price w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1.5 text-[15px] text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
         </td>
-        <td class="py-2 pr-3 w-14">
+        <td class="py-2 pr-3 w-20">
             <input type="number" value="${qty}" min="0" oninput="invRecalc()"
-                   class="inv-qty w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500">
+                   class="inv-qty w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1.5 text-[15px] text-center focus:outline-none focus:ring-1 focus:ring-blue-500">
         </td>
-        <td class="py-2 pr-3 w-16">
+        <td class="py-2 pr-3 w-24">
             <div class="relative">
                 <input type="number" value="${Number(tax).toFixed(1)}" min="0" max="100" step="0.1" oninput="invRecalc()"
-                       class="inv-tax w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500 pr-5">
-                <span class="absolute right-1.5 top-1.5 text-slate-400 text-xs pointer-events-none">%</span>
+                       class="inv-tax w-full border border-transparent hover:border-slate-200 focus:border-blue-500 rounded px-2 py-1.5 text-[15px] text-center focus:outline-none focus:ring-1 focus:ring-blue-500 pr-6">
+                <span class="absolute right-2 top-2 text-slate-400 text-xs pointer-events-none">%</span>
             </div>
         </td>
-        <td class="py-2 w-24 text-right text-sm text-slate-800 inv-sub font-medium whitespace-nowrap pt-2.5"></td>
+        <td class="py-2 w-32 text-right text-[15px] text-slate-800 inv-sub font-semibold whitespace-nowrap pt-2.5"></td>
         <td class="py-2 w-6 text-center">
             <button onclick="this.closest('tr').remove(); invRecalc(); scheduleDraftSave();"
                     class="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition pt-1">
@@ -992,8 +1385,7 @@ function clearInvoice() {
     document.getElementById('invAddress').value     = '';
     document.getElementById('invEstimateNo').value  = 'EST-' + Date.now().toString().slice(-4);
     document.getElementById('invDate').value        = new Date().toISOString().slice(0,10);
-    const exp = new Date(); exp.setDate(exp.getDate() + 15);
-    document.getElementById('invExpiry').value      = exp.toISOString().slice(0,10);
+    syncExpiryFromIssue();
     const due = new Date(); due.setDate(due.getDate() + 14);
     document.getElementById('invDueDate').value     = due.toISOString().slice(0,10);
     document.getElementById('invLineAmountType').value = 'Exclusive';
@@ -1210,11 +1602,6 @@ async function invLoadTent(idx) {
 }
 
 // ── Invoice build / print ─────────────────────────────────────────────────────
-function copyInvoiceJSON() {
-    navigator.clipboard.writeText(JSON.stringify(buildInvoiceFromEditor(), null, 2))
-        .then(() => alert('Invoice JSON copied to clipboard.'));
-}
-
 function buildInvoiceFromEditor() {
     const items = [];
     document.querySelectorAll('#invItemsBody tr').forEach(tr => {
@@ -1330,10 +1717,17 @@ async function printInvoice() {
 
     const rows = inv.items.map(i => {
         const taxCell = i.tax_pct > 0 ? `${i.tax_pct}%` : '-';
+        const discPct  = Number(i.discount_percentage) || 0;
+        const discFlat = Number(i.discount_flat) || 0;
+        const hasDisc  = discPct > 0 || discFlat > 0;
+        const discCell = hasDisc
+            ? [discPct > 0 ? `${discPct}%` : null, discFlat > 0 ? `${cur}${discFlat.toFixed(2)}` : null].filter(Boolean).join(' + ')
+            : '-';
         return `<tr>
             <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">${escHtml(i.name)}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right">${cur}${i.unit_price.toFixed(2)}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">${i.qty}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center${hasDisc ? ';color:#16a34a' : ''}">${discCell}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">${taxCell}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right">${cur}${i.subtotal.toFixed(2)}</td>
         </tr>`;
@@ -1399,6 +1793,7 @@ async function printInvoice() {
         <th>Item Name</th>
         <th class="right">Price</th>
         <th class="center">QTY</th>
+        <th class="center">Discount</th>
         <th class="center">TAX</th>
         <th class="right">Subtotal</th>
       </tr></thead>
@@ -1475,5 +1870,57 @@ async function saveEstimate() {
 
 function escHtml(str) {
     return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Add N working days (Mon-Fri, skipping weekends) to a Date and return a new
+// Date. Used for the estimate expiry, which is 5 working days from the issue date.
+function addWorkingDays(fromDate, n) {
+    const d = new Date(fromDate.getTime());
+    let added = 0;
+    while (added < n) {
+        d.setDate(d.getDate() + 1);
+        const day = d.getDay();           // 0 = Sun, 6 = Sat
+        if (day !== 0 && day !== 6) added++;
+    }
+    return d;
+}
+
+// Set the Expiry Date to 5 working days after the current Issue Date value.
+// Parses the date input as a local date so there is no timezone off-by-one.
+function syncExpiryFromIssue() {
+    const issueEl = document.getElementById('invDate');
+    const expEl   = document.getElementById('invExpiry');
+    if (!issueEl || !expEl) return;
+    const parts = (issueEl.value || '').split('-');
+    const base  = parts.length === 3
+        ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+        : new Date();
+    const exp = addWorkingDays(base, 5);
+    const y = exp.getFullYear();
+    const m = String(exp.getMonth() + 1).padStart(2, '0');
+    const dd = String(exp.getDate()).padStart(2, '0');
+    expEl.value = `${y}-${m}-${dd}`;
+}
+
+// Strip markdown so AI replies render cleanly as plain text (no stray * # `).
+function mdToPlain(str) {
+    return String(str ?? '')
+        .replace(/(\*\*|__)(.+?)\1/g, '$2')      // **bold** / __bold__
+        .replace(/^[ \t]*[*+\-][ \t]+/gm, '- ')   // bullet markers -> "- "
+        .replace(/^[ \t]*#{1,6}[ \t]*/gm, '')     // markdown headings
+        .replace(/`/g, '')                        // backticks
+        .replace(/\*+/g, '')                      // any stray asterisks
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+// Detect placeholder/junk customer names the model sometimes invents.
+function isPlaceholderName(name) {
+    const n = String(name ?? '').trim().toLowerCase();
+    if (!n) return false;
+    return ['voice message customer','voice message','voice customer','customer',
+            'customer name','the customer','valued customer','unknown',
+            'unknown customer','n/a','na','not specified','not provided',
+            'not available'].includes(n);
 }
 </script>

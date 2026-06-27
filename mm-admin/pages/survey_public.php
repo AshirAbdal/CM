@@ -3,12 +3,8 @@
 // Accessed via /survey/{64-char-token}
 if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
-$_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
-if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000' : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
-if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002' : 'https://admin.majesticmarquees.clickdigim.com');
-unset($_is_local);
-
+// This page talks to the backend through the same-origin /api/proxy endpoint,
+// which attaches the tenant API key server-side. No secret is emitted here.
 $token = preg_replace('/[^a-f0-9]/', '', $_GET['token'] ?? '');
 if (strlen($token) !== 64) { http_response_code(404); echo '404 - Not found'; exit; }
 ?>
@@ -30,9 +26,7 @@ if (strlen($token) !== 64) { http_response_code(404); echo '404 - Not found'; ex
 
 <script>
 const TOKEN    = '<?= htmlspecialchars($token, ENT_QUOTES) ?>';
-const API_BASE = '<?= API_BASE ?>';
-const API_KEY  = '<?= API_KEY ?>';
-const ORIGIN   = '<?= ORIGIN ?>';
+const API_BASE = '/api/proxy';
 
 function esc(str) {
     return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -40,9 +34,7 @@ function esc(str) {
 
 async function loadSurvey() {
     try {
-        const res  = await fetch(API_BASE + '/wl/public/survey/' + TOKEN, {
-            headers: { 'X-API-Key': API_KEY, 'Origin': ORIGIN }
-        });
+        const res  = await fetch(API_BASE + '/wl/public/survey/' + TOKEN);
         const data = await res.json();
         if (!res.ok) { showError(data.error || 'Survey not found.'); return; }
         render(data);
@@ -157,7 +149,7 @@ async function submitSurvey(e) {
     try {
         const res  = await fetch(API_BASE + '/wl/public/survey/' + TOKEN + '/submit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY, 'Origin': ORIGIN },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ responses })
         });
         const data = await res.json();

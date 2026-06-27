@@ -1,0 +1,9 @@
+# Deny all direct web access to logs (defense in depth; this dir is already
+# above the public/ web root). Applies to all subdirectories (e.g. consent/).
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

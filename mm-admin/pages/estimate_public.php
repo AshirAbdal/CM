@@ -3,12 +3,8 @@
 // Accessed via /estimate/{64-char-token}
 if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
-$_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
-if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000' : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
-if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002' : 'https://admin.majesticmarquees.clickdigim.com');
-unset($_is_local);
-
+// This page talks to the backend through the same-origin /api/proxy endpoint,
+// which attaches the tenant API key server-side. No secret is emitted here.
 $token = preg_replace('/[^a-f0-9]/', '', $_GET['token'] ?? '');
 if (strlen($token) !== 64) { http_response_code(404); echo '404 - Not found'; exit; }
 ?>
@@ -36,9 +32,7 @@ if (strlen($token) !== 64) { http_response_code(404); echo '404 - Not found'; ex
 
 <script>
 const TOKEN   = '<?= htmlspecialchars($token, ENT_QUOTES) ?>';
-const API_BASE= '<?= API_BASE ?>';
-const API_KEY = '<?= API_KEY ?>';
-const ORIGIN  = '<?= ORIGIN ?>';
+const API_BASE= '/api/proxy';
 
 function esc(str) {
     return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -46,9 +40,7 @@ function esc(str) {
 
 async function loadEstimate() {
     try {
-        const res  = await fetch(API_BASE + '/wl/public/estimates/' + TOKEN, {
-            headers: { 'X-API-Key': API_KEY, 'Origin': ORIGIN }
-        });
+        const res  = await fetch(API_BASE + '/wl/public/estimates/' + TOKEN);
         const data = await res.json();
         if (!res.ok) { showError(data.error || 'Estimate not found.'); return; }
         renderEstimate(data);
@@ -83,10 +75,17 @@ function renderEstimate(d) {
 
     const itemRows = (d.items || []).map(i => {
         const taxCell = i.tax_pct > 0 ? `${i.tax_pct}%` : '-';
+        const discPct  = Number(i.discount_percentage) || 0;
+        const discFlat = Number(i.discount_flat) || 0;
+        const hasDisc  = discPct > 0 || discFlat > 0;
+        const discCell = hasDisc
+            ? [discPct > 0 ? `${discPct}%` : null, discFlat > 0 ? `${cur}&nbsp;${discFlat.toFixed(2)}` : null].filter(Boolean).join(' + ')
+            : '-';
         return `<tr class="border-b border-slate-100">
             <td class="py-2.5 pr-4 text-slate-700 text-sm">${esc(i.name)}</td>
             <td class="py-2.5 pr-4 text-slate-600 text-sm text-right">${cur}&nbsp;${Number(i.unit_price).toFixed(2)}</td>
             <td class="py-2.5 pr-4 text-slate-600 text-sm text-center">${i.qty}</td>
+            <td class="py-2.5 pr-4 text-sm text-center ${hasDisc ? 'text-green-600' : 'text-slate-500'}">${discCell}</td>
             <td class="py-2.5 pr-4 text-slate-500 text-sm text-center">${taxCell}</td>
             <td class="py-2.5 text-slate-800 text-sm text-right font-medium">${cur}&nbsp;${Number(i.subtotal).toFixed(2)}</td>
         </tr>`;
@@ -133,6 +132,7 @@ function renderEstimate(d) {
                     <th class="pb-2 text-left font-semibold">Item Name</th>
                     <th class="pb-2 text-right font-semibold">Price</th>
                     <th class="pb-2 text-center font-semibold">QTY</th>
+                    <th class="pb-2 text-center font-semibold">Discount</th>
                     <th class="pb-2 text-center font-semibold">TAX</th>
                     <th class="pb-2 text-right font-semibold">Subtotal</th>
                 </tr></thead>
@@ -200,7 +200,7 @@ async function respond(action) {
     try {
         const res  = await fetch(API_BASE + '/wl/public/estimates/' + TOKEN + '/respond', {
             method: 'POST',
-            headers: { 'Content-Type':'application/json', 'X-API-Key': API_KEY, 'Origin': ORIGIN },
+            headers: { 'Content-Type':'application/json' },
             body: JSON.stringify({ action }),
         });
         const data = await res.json();
@@ -225,7 +225,7 @@ async function submitChanges() {
     try {
         const res = await fetch(API_BASE + '/wl/public/estimates/' + TOKEN + '/respond', {
             method: 'POST',
-            headers: { 'Content-Type':'application/json', 'X-API-Key': API_KEY, 'Origin': ORIGIN },
+            headers: { 'Content-Type':'application/json' },
             body: JSON.stringify({ action: 'changes', message: msg }),
         });
         const data = await res.json();

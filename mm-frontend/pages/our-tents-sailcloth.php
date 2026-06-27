@@ -29,11 +29,11 @@ $whyQtents = [
 
 $sizeGroups = [
     ['label' => '6 Meter', 'variants' => [
-        ['label' => '6x6', 'images' => ['/assets/images/sailcloth-config-6x6.jpg'], 'size' => '6×6 meter', 'seated' => '10 persons', 'cocktail' => '16 Persons', 'cinema' => '23 Persons', 'surface' => '23 m²', 'coating' => 'coated', 'weight' => '10.8kg', 'packed' => '50x50x100cm', 'colours' => 'Ivory'],
-        ['label' => '6x12', 'images' => ['/assets/images/sailcloth-config-6x12.jpg'], 'size' => '6×12 meter', 'seated' => '24 persons', 'cocktail' => '38 Persons', 'cinema' => '54 Persons', 'surface' => '46 m²', 'coating' => 'coated', 'weight' => '18kg', 'packed' => '55x55x120cm', 'colours' => 'Ivory'],
-        ['label' => '6x18', 'images' => ['/assets/images/sailcloth-config-6x18.jpg'], 'size' => '6×18 meter', 'seated' => '40 persons', 'cocktail' => '64 Persons', 'cinema' => '90 Persons', 'surface' => '69 m²', 'coating' => 'coated', 'weight' => '26kg', 'packed' => '60x60x130cm', 'colours' => 'Ivory'],
-        ['label' => '6x24', 'images' => ['/assets/images/sailcloth-config-6x24.jpg'], 'size' => '6×24 meter', 'seated' => '56 persons', 'cocktail' => '90 Persons', 'cinema' => '128 Persons', 'surface' => '92 m²', 'coating' => 'coated', 'weight' => '34kg', 'packed' => '60x60x140cm', 'colours' => 'Ivory'],
-        ['label' => '6x30', 'images' => ['/assets/images/sailcloth-config-6x30.jpg'], 'size' => '6×30 meter', 'seated' => '72 persons', 'cocktail' => '115 Persons', 'cinema' => '162 Persons', 'surface' => '115 m²', 'coating' => 'coated', 'weight' => '42kg', 'packed' => '60x60x150cm', 'colours' => 'Ivory'],
+        ['label' => '6x6', 'images' => ['/assets/images/sailcloth-config-6x6-1.webp', '/assets/images/sailcloth-config-6x6-2.webp'], 'size' => '6×6 meter', 'seated' => '10 persons', 'cocktail' => '16 Persons', 'cinema' => '23 Persons', 'surface' => '23 m²', 'coating' => 'coated', 'weight' => '10.8kg', 'packed' => '50x50x100cm', 'colours' => 'Ivory'],
+        ['label' => '6x12', 'images' => ['/assets/images/sailcloth-config-6x12-1.webp', '/assets/images/sailcloth-config-6x12-2.webp'], 'size' => '6×12 meter', 'seated' => '24 persons', 'cocktail' => '38 Persons', 'cinema' => '54 Persons', 'surface' => '46 m²', 'coating' => 'coated', 'weight' => '18kg', 'packed' => '55x55x120cm', 'colours' => 'Ivory'],
+        ['label' => '6x18', 'images' => ['/assets/images/sailcloth-config-6x18-1.webp', '/assets/images/sailcloth-config-6x18-2.webp'], 'size' => '6×18 meter', 'seated' => '40 persons', 'cocktail' => '64 Persons', 'cinema' => '90 Persons', 'surface' => '69 m²', 'coating' => 'coated', 'weight' => '26kg', 'packed' => '60x60x130cm', 'colours' => 'Ivory'],
+        ['label' => '6x24', 'images' => ['/assets/images/sailcloth-config-6x24-1.webp', '/assets/images/sailcloth-config-6x24-2.webp'], 'size' => '6×24 meter', 'seated' => '56 persons', 'cocktail' => '90 Persons', 'cinema' => '128 Persons', 'surface' => '92 m²', 'coating' => 'coated', 'weight' => '34kg', 'packed' => '60x60x140cm', 'colours' => 'Ivory'],
+        ['label' => '6x30', 'images' => ['/assets/images/sailcloth-config-6x30-1.webp', '/assets/images/sailcloth-config-6x30-2.webp'], 'size' => '6×30 meter', 'seated' => '72 persons', 'cocktail' => '115 Persons', 'cinema' => '162 Persons', 'surface' => '115 m²', 'coating' => 'coated', 'weight' => '42kg', 'packed' => '60x60x150cm', 'colours' => 'Ivory'],
     ]],
     ['label' => '8 Meter', 'variants' => [
         ['label' => '8x8', 'images' => ['/assets/images/sailcloth-config-8x8.jpg'], 'size' => '8×8 meter', 'seated' => '20 persons', 'cocktail' => '32 Persons', 'cinema' => '45 Persons', 'surface' => '40 m²', 'coating' => 'coated', 'weight' => '16kg', 'packed' => '55x55x120cm', 'colours' => 'Ivory'],
@@ -42,7 +42,7 @@ $sizeGroups = [
         ['label' => '8x32', 'images' => ['/assets/images/sailcloth-config-8x32.jpg'], 'size' => '8×32 meter', 'seated' => '98 persons', 'cocktail' => '155 Persons', 'cinema' => '220 Persons', 'surface' => '160 m²', 'coating' => 'coated', 'weight' => '60kg', 'packed' => '70x70x160cm', 'colours' => 'Ivory'],
     ]],
     ['label' => '10 meter', 'variants' => [
-        ['label' => '10x10', 'images' => ['/assets/images/sailcloth-config-10x10.jpg'], 'size' => '10×10 meter', 'seated' => '35 persons', 'cocktail' => '55 Persons', 'cinema' => '78 Persons', 'surface' => '63 m²', 'coating' => 'coated', 'weight' => '24kg', 'packed' => '60x60x140cm', 'colours' => 'Ivory'],
+        ['label' => '10x10', 'images' => ['/assets/images/sailcloth-config-10x10-1.webp', '/assets/images/sailcloth-config-10x10-2.webp'], 'size' => '10×10 meter', 'seated' => '35 persons', 'cocktail' => '55 Persons', 'cinema' => '78 Persons', 'surface' => '63 m²', 'coating' => 'coated', 'weight' => '24kg', 'packed' => '60x60x140cm', 'colours' => 'Ivory'],
         ['label' => '10x20', 'images' => ['/assets/images/sailcloth-config-10x20.jpg'], 'size' => '10×20 meter', 'seated' => '80 persons', 'cocktail' => '128 Persons', 'cinema' => '180 Persons', 'surface' => '126 m²', 'coating' => 'coated', 'weight' => '46kg', 'packed' => '65x65x150cm', 'colours' => 'Ivory'],
         ['label' => '10x30', 'images' => ['/assets/images/sailcloth-config-10x30.jpg'], 'size' => '10×30 meter', 'seated' => '125 persons', 'cocktail' => '200 Persons', 'cinema' => '280 Persons', 'surface' => '188 m²', 'coating' => 'coated', 'weight' => '68kg', 'packed' => '70x70x160cm', 'colours' => 'Ivory'],
     ]],
@@ -52,15 +52,15 @@ $sizeGroups = [
         ['label' => '12x36', 'images' => ['/assets/images/sailcloth-config-12x36.jpg'], 'size' => '12×36 meter', 'seated' => '180 persons', 'cocktail' => '290 Persons', 'cinema' => '405 Persons', 'surface' => '270 m²', 'coating' => 'coated', 'weight' => '95kg', 'packed' => '75x75x170cm', 'colours' => 'Ivory'],
     ]],
     ['label' => '14 Meter', 'variants' => [
-        ['label' => '14x14', 'images' => ['/assets/images/sailcloth-config-14x14.jpg'], 'size' => '14×14 meter', 'seated' => '70 persons', 'cocktail' => '110 Persons', 'cinema' => '160 Persons', 'surface' => '126 m²', 'coating' => 'coated', 'weight' => '48kg', 'packed' => '70x70x160cm', 'colours' => 'Ivory'],
+        ['label' => '14x14', 'images' => ['/assets/images/sailcloth-config-14x14-1.webp', '/assets/images/sailcloth-config-14x14-2.webp'], 'size' => '14×14 meter', 'seated' => '70 persons', 'cocktail' => '110 Persons', 'cinema' => '160 Persons', 'surface' => '126 m²', 'coating' => 'coated', 'weight' => '48kg', 'packed' => '70x70x160cm', 'colours' => 'Ivory'],
         ['label' => '14x28', 'images' => ['/assets/images/sailcloth-config-14x28.jpg'], 'size' => '14×28 meter', 'seated' => '160 persons', 'cocktail' => '255 Persons', 'cinema' => '360 Persons', 'surface' => '252 m²', 'coating' => 'coated', 'weight' => '90kg', 'packed' => '75x75x170cm', 'colours' => 'Ivory'],
         ['label' => '14x42', 'images' => ['/assets/images/sailcloth-config-14x42.jpg'], 'size' => '14×42 meter', 'seated' => '250 persons', 'cocktail' => '400 Persons', 'cinema' => '560 Persons', 'surface' => '378 m²', 'coating' => 'coated', 'weight' => '135kg', 'packed' => '80x80x180cm', 'colours' => 'Ivory'],
     ]],
     ['label' => '20 Meter', 'variants' => [
-        ['label' => '20x20', 'images' => ['/assets/images/sailcloth-config-20x20.jpg'], 'size' => '20×20 meter', 'seated' => '134 persons', 'cocktail' => '224 Persons', 'cinema' => '335 Persons', 'surface' => '335 m²', 'coating' => 'coated', 'weight' => '120kg', 'packed' => '75x100x150cm', 'colours' => 'Ivory'],
-        ['label' => '20x26', 'images' => ['/assets/images/sailcloth-config-20x26.jpg'], 'size' => '20×26 meter', 'seated' => '182 persons', 'cocktail' => '304 Persons', 'cinema' => '455 Persons', 'surface' => '455 m²', 'coating' => 'coated', 'weight' => '156kg', 'packed' => '50x75x150cm', 'colours' => 'Ivory'],
-        ['label' => '20x32', 'images' => ['/assets/images/sailcloth-config-20x32.jpg'], 'size' => '20×32 meter', 'seated' => '230 persons', 'cocktail' => '384 Persons', 'cinema' => '575 Persons', 'surface' => '575 m²', 'coating' => 'coated', 'weight' => '192kg', 'packed' => '75x100x150cm', 'colours' => 'Ivory'],
-        ['label' => '20x38', 'images' => ['/assets/images/sailcloth-config-20x38.jpg'], 'size' => '20×38 meter', 'seated' => '278 persons', 'cocktail' => '464 Persons', 'cinema' => '695 Persons', 'surface' => '695 m²', 'coating' => 'coated', 'weight' => '228kg', 'packed' => '75x100x150cm', 'colours' => 'Ivory'],
+        ['label' => '20x20', 'images' => ['/assets/images/sailcloth-config-20x20-1.webp', '/assets/images/sailcloth-config-20x20-2.webp'], 'size' => '20×20 meter', 'seated' => '134 persons', 'cocktail' => '224 Persons', 'cinema' => '335 Persons', 'surface' => '335 m²', 'coating' => 'coated', 'weight' => '120kg', 'packed' => '75x100x150cm', 'colours' => 'Ivory'],
+        ['label' => '20x26', 'images' => ['/assets/images/sailcloth-config-20x26-1.webp', '/assets/images/sailcloth-config-20x26-2.webp'], 'size' => '20×26 meter', 'seated' => '182 persons', 'cocktail' => '304 Persons', 'cinema' => '455 Persons', 'surface' => '455 m²', 'coating' => 'coated', 'weight' => '156kg', 'packed' => '50x75x150cm', 'colours' => 'Ivory'],
+        ['label' => '20x32', 'images' => ['/assets/images/sailcloth-config-20x32-1.webp', '/assets/images/sailcloth-config-20x32-2.webp'], 'size' => '20×32 meter', 'seated' => '230 persons', 'cocktail' => '384 Persons', 'cinema' => '575 Persons', 'surface' => '575 m²', 'coating' => 'coated', 'weight' => '192kg', 'packed' => '75x100x150cm', 'colours' => 'Ivory'],
+        ['label' => '20x38', 'images' => ['/assets/images/sailcloth-config-20x38-1.webp', '/assets/images/sailcloth-config-20x38-2.webp'], 'size' => '20×38 meter', 'seated' => '278 persons', 'cocktail' => '464 Persons', 'cinema' => '695 Persons', 'surface' => '695 m²', 'coating' => 'coated', 'weight' => '228kg', 'packed' => '75x100x150cm', 'colours' => 'Ivory'],
     ]],
 ];
 
@@ -73,30 +73,15 @@ $faqs = [
 ];
 ?>
 
-<script type="application/json" id="page-meta">
-{
-    "title": "Sailcloth / Silhouette Tents - Majestic Marquees & Tents",
-    "name": {
-        "description": "Genuine sailcloth tents in widths from 6 m to 20 m - elegance, style and sophistication for memorable outdoor events.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Sailcloth / Silhouette Tents - Majestic Marquees & Tents",
-        "og:description": "Genuine sailcloth tents in widths from 6 m to 20 m - elegance, style and sophistication for memorable outdoor events.",
-        "og:type": "website"
-    }
-}
-</script>
-
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[360px] sm:h-[420px] lg:h-[480px] overflow-hidden">
-        <img src="/assets/images/sailcloth-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/sailcloth-hero-bg.jpg" alt="<?= e(get_image_alt('images/sailcloth-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute inset-0 flex items-center justify-center">
         <div class="container-x text-center text-white">
-            <h1 class="heading-xl text-white">Sailcloth / Silhoutte</h1>
+            <h1 class="heading-xl text-white">Sailcloth / Silhouette</h1>
             <p class="mt-4 italic text-secondary-ttl text-white/90">Elegance, Style and Sophistication</p>
         </div>
     </div>
@@ -118,7 +103,7 @@ $faqs = [
         <?php carousel_open(); ?>
         <?php for ($i = 1; $i <= 9; $i++): ?>
             <div class="shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3 px-2">
-                <img src="/assets/images/sailcloth-carousel-<?= $i ?>.jpg" alt="Sailcloth <?= $i ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
+                <img src="/assets/images/sailcloth-carousel-<?= $i ?>.jpg" alt="<?= e(get_image_alt('images/sailcloth-carousel-' . $i . '.jpg', 'Sailcloth ' . $i)) ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
             </div>
         <?php endfor; ?>
         <?php carousel_close(); ?>
@@ -167,7 +152,7 @@ $faqs = [
                 ), a top-level manufacturer renowned for their expertise and innovation, hailing from
                 the Netherlands.
             </p>
-            <img src="/assets/images/stretch-qtents-logo.webp" alt="Qtents" class="mt-10 h-[300px] w-auto object-contain" loading="lazy">
+            <img src="/assets/images/stretch-qtents-logo.webp" alt="<?= e(get_image_alt('images/stretch-qtents-logo.webp', 'Qtents')) ?>" class="mt-10 h-[300px] w-auto object-contain" loading="lazy">
         </div>
         <div>
             <h2 class="heading-m">Canvas Information</h2>
@@ -179,7 +164,7 @@ $faqs = [
                     </li>
                 <?php endforeach; ?>
             </ul>
-            <img src="/assets/images/sailcloth-canvas-layers.webp" alt="Genuine sailcloth canvas layers" class="mt-10 w-full max-w-[586px] object-contain" loading="lazy">
+            <img src="/assets/images/sailcloth-canvas-layers.webp" alt="<?= e(get_image_alt('images/sailcloth-canvas-layers.webp', 'Genuine sailcloth canvas layers')) ?>" class="mt-10 w-full max-w-[586px] object-contain" loading="lazy">
         </div>
     </div>
 </section>
@@ -199,7 +184,7 @@ $faqs = [
                 <div class="shrink-0 grow-0 basis-full sm:basis-1/2 px-4 sm:px-8">
                     <div class="text-center">
                         <p class="text-forest-700/85 italic font-display max-w-md mx-auto"><?= e($f['text']) ?></p>
-                        <img src="/assets/images/<?= e($f['icon']) ?>.webp" alt="<?= e($f['title']) ?>" class="mt-8 mx-auto w-28 h-28 object-contain" loading="lazy">
+                        <img src="/assets/images/<?= e($f['icon']) ?>.webp" alt="<?= e(get_image_alt('images/' . $f['icon'] . '.webp', $f['title'])) ?>" class="mt-8 mx-auto w-28 h-28 object-contain" loading="lazy">
                         <h4 class="mt-6 text-primary-ttl text-forest-800"><?= e($f['title']) ?></h4>
                     </div>
                 </div>

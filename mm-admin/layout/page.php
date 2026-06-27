@@ -8,7 +8,7 @@ $layout = $layout ?? 'app';
     <meta name="generator" content="clickdigim v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageMeta['title'] ?? 'Admin | Majestic Marquees') ?></title>
-    <link rel="icon" href="data:,">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <?php if (!empty($pageMeta['description'])): ?>
     <meta name="description" content="<?= e($pageMeta['description']) ?>">
     <?php endif; ?>
@@ -24,10 +24,18 @@ $layout = $layout ?? 'app';
             theme: {
                 extend: {
                     colors: {
-                        primary:    '#2563eb',
-                        sidebar:    '#0f172a',
-                        background: '#f8fafc',
-                        card:       '#ffffff'
+                        // ── Brand theme (mirrors mm-frontend) ───────────────
+                        primary:    '#a57b5b',   // brand tan (was #2563eb)
+                        sidebar:    '#a57b5b',   // brand tan
+                        background: '#faf6ec',   // brand cream
+                        card:       '#ffffff',
+                        cream:  { 50: '#faf6ec', 100: '#f4ecd9', 200: '#ede1c4' },
+                        forest: { 500: '#586b4f', 600: '#475a40', 700: '#3a4a3a', 800: '#3f503c', 900: '#23301f' },
+                        tan:    { 50: '#f6f1ea', 100: '#efe3d5', 200: '#e2cdb4', 300: '#d0b08a', 400: '#bd9676', 500: '#a57b5b', 600: '#8c6849', 700: '#70533a', 800: '#5a4430', 900: '#4a3829' },
+                        // Re-map Tailwind's built-in blue onto the brand tan so
+                        // every existing `blue-*` accent class becomes brand-
+                        // coloured without touching page markup or logic.
+                        blue:   { 50: '#f6f1ea', 100: '#efe3d5', 200: '#e2cdb4', 300: '#d0b08a', 400: '#bd9676', 500: '#a57b5b', 600: '#8c6849', 700: '#70533a', 800: '#5a4430', 900: '#4a3829' }
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif']
@@ -47,62 +55,100 @@ $layout = $layout ?? 'app';
     <?= $pageContent ?? '' ?>
 </body>
 <?php else: ?>
-<body class="bg-gray-50 text-gray-800">
-<div class="flex min-h-screen bg-gray-50">
+<body class="bg-cream-50 text-gray-800">
+<div class="flex min-h-screen bg-cream-50">
 
     <!-- Mobile sidebar overlay -->
     <div id="sidebar-overlay" onclick="closeSidebar()"
          class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden"></div>
 
     <!-- Sidebar -->
-    <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-30 w-60 shrink-0 bg-gray-900 text-gray-200 flex flex-col overflow-y-auto -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen transition-transform duration-300">
-        <div class="px-6 py-5 border-b border-gray-700">
-            <p class="text-xs uppercase tracking-widest text-gray-400">Admin Panel</p>
-            <h1 class="mt-1 text-sm font-semibold text-white leading-snug">Majestic Marquees</h1>
+    <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-30 w-60 shrink-0 bg-tan-500 text-gray-100 flex flex-col overflow-y-auto -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen transition-transform duration-300">
+        <div class="px-6 py-5 border-b border-tan-600">
+            <div class="flex items-center justify-center">
+                <img src="/logo-original.webp" alt="Majestic Marquees" class="h-16 w-auto object-contain">
+            </div>
+            <p class="mt-3 text-center text-[11px] uppercase tracking-widest text-cream-100">Admin Panel</p>
         </div>
 
         <nav class="flex-1 overflow-y-auto py-4">
             <ul class="space-y-0.5 px-3">
+                <?php if (can('dashboard.view')): ?>
                 <li>
-                    <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'dashboard' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                    <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'dashboard' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                         <span class="text-base leading-none">&#9638;</span>
                         Dashboard
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can_any(['leads.view', 'customers.view'])): ?>
                 <li>
-                    <a href="/customer-info-details" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'leads' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                    <a href="/customer-info-details" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'leads' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                         <span class="text-base leading-none">&#9993;</span>
                         Customer Information
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can('inventory.view')): ?>
                 <li>
-                    <a href="/inventory" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'inventory' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                    <a href="/inventory" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'inventory' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                         <span class="text-base leading-none">&#9707;</span>
                         Inventory
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can('leads.view')): ?>
                 <li>
-                    <a href="/lead-management" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'lead-management' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                    <a href="/lead-management" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'lead-management' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                         <span class="text-base leading-none">&#9889;</span>
                         Lead Management
                     </a>
                 </li>
+                <?php endif; ?>
+
+                <?php if (can_any(['reviews.view', 'reviews.manage'])): ?>
+                <li>
+                    <a href="/reviews" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'reviews' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
+                        <span class="text-base leading-none">&#9733;</span>
+                        Reviews
+                    </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (can('posts.view')): ?>
+                <li>
+                    <a href="/posts" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'posts' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
+                        <span class="text-base leading-none">&#9998;</span>
+                        Blog
+                    </a>
+                </li>
+                <?php endif; ?>
 
                 <?php
                     // "Settings" groups the configuration pages (survey + AI
-                    // context, image manager, Xero). It is a pure toggle (no
-                    // page of its own) and auto-expands when one of its children
-                    // is the active page.
-                    $settingsNavs = ['survey-questions', 'images', 'xero'];
+                    // context, image manager, Xero, users & roles). It is a pure
+                    // toggle (no page of its own) and auto-expands when one of
+                    // its children is the active page. Each child is gated by
+                    // its own permission, and the group only renders when at
+                    // least one child is visible.
+                    $settingsNavs = ['survey-questions', 'ai-settings', 'smtp-settings', 'images', 'xero', 'user-management'];
                     $settingsOpen = in_array($activeNav ?? '', $settingsNavs, true);
+                    $canSurvey     = can('survey.manage');
+                    $canAi         = can('ai.manage');
+                    $canSmtp       = can('smtp.manage');
+                    $canImages     = can('images.view');
+                    $canXero       = can('xero.manage');
+                    $canUsersRoles = can('users.manage') || can('roles.manage');
+                    $showSettings = $canSurvey || $canAi || $canSmtp || $canImages || $canXero || $canUsersRoles;
                 ?>
+                <?php if ($showSettings): ?>
                 <li>
                     <button type="button"
                             id="settings-toggle"
                             data-submenu-toggle="settings"
                             aria-controls="settings-submenu"
                             aria-expanded="<?= $settingsOpen ? 'true' : 'false' ?>"
-                            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= $settingsOpen ? 'text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= $settingsOpen ? 'text-white' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                         <span class="text-base leading-none shrink-0">&#9881;</span>
                         <span class="flex-1 text-left">Settings</span>
                         <svg id="settings-chevron" class="w-4 h-4 shrink-0 transition-transform duration-200 <?= $settingsOpen ? 'rotate-180' : '' ?>" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -110,30 +156,61 @@ $layout = $layout ?? 'app';
                         </svg>
                     </button>
                     <ul id="settings-submenu" class="mt-0.5 space-y-0.5 pl-3 <?= $settingsOpen ? '' : 'hidden' ?>">
+                        <?php if ($canSurvey): ?>
                         <li>
-                            <a href="/survey-questions" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'survey-questions' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                            <a href="/survey-questions" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'survey-questions' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                                 <span class="text-base leading-none shrink-0">&#9783;</span>
                                 Survey &amp; AI Context
                             </a>
                         </li>
+                        <?php endif; ?>
+                        <?php if ($canAi): ?>
                         <li>
-                            <a href="/images" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'images' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                            <a href="/ai-settings" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'ai-settings' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
+                                <span class="text-base leading-none shrink-0">&#10024;</span>
+                                AI Settings
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($canSmtp): ?>
+                        <li>
+                            <a href="/smtp-settings" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'smtp-settings' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
+                                <span class="text-base leading-none shrink-0">&#9993;</span>
+                                Email / SMTP
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($canImages): ?>
+                        <li>
+                            <a href="/images" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'images' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                                 <span class="text-base leading-none shrink-0">&#9654;</span>
                                 Image Manager
                             </a>
                         </li>
+                        <?php endif; ?>
+                        <?php if ($canXero): ?>
                         <li>
-                            <a href="/xero" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'xero' ? 'bg-gray-700 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                            <a href="/xero" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'xero' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
                                 <span class="text-base leading-none shrink-0">&#128179;</span>
                                 Xero Integration
                             </a>
                         </li>
+                        <?php endif; ?>
+                        <?php if ($canUsersRoles): ?>
+                        <li>
+                            <a href="/user-management" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors <?= ($activeNav ?? '') === 'user-management' ? 'bg-tan-700 text-white font-medium' : 'text-cream-100 hover:bg-tan-600 hover:text-white' ?>">
+                                <span class="text-base leading-none shrink-0">&#128101;</span>
+                                Users &amp; Roles
+                            </a>
+                        </li>
+                        <?php endif; ?>
                     </ul>
                 </li>
+                <?php endif; ?>
             </ul>
         </nav>
 
-        <div class="px-6 py-4 border-t border-gray-700 text-xs text-gray-500">
+        <div class="px-6 py-4 border-t border-tan-600 text-xs text-cream-100">
             v1.0 &middot; Admin
         </div>
     </aside>
@@ -150,7 +227,12 @@ $layout = $layout ?? 'app';
             <div class="hidden lg:block"></div>
             <div class="flex items-center gap-4">
                 <?php if (!empty($_SESSION['admin_name'])): ?>
-                <span class="text-sm text-gray-600"><?= e($_SESSION['admin_name']) ?></span>
+                <div class="hidden sm:flex flex-col items-end leading-tight">
+                    <span class="text-sm text-gray-700"><?= e($_SESSION['admin_name']) ?></span>
+                    <?php if (current_role_name() !== ''): ?>
+                    <span class="text-[11px] text-gray-400"><?= e(current_role_name()) ?></span>
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
 
                 <!-- ── Notification bell ──────────────────────────── -->
@@ -192,7 +274,8 @@ $layout = $layout ?? 'app';
                     </div>
                 </div>
 
-                <a href="/logout" class="text-sm text-gray-500 hover:text-gray-800 transition-colors">Sign out</a>
+                <a href="/change-password" class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Change password</a>
+                <a href="/logout" class="text-sm px-3 py-1.5 rounded-lg bg-tan-500 text-white hover:bg-tan-600 transition-colors">Sign out</a>
             </div>
         </header>
 

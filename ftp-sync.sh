@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
 #
-# lftp helper for the Majestic Marquees servers (frontend + admin).
+# lftp helper for the Majestic Marquees servers (frontend + admin + blog).
 #
 # Both servers REQUIRE explicit FTPS (FTP over TLS). Plain FTP connects but
 # data transfers (ls / get / put) fail with "max-retries exceeded".
 #
 # Usage:
 #   ./ftp-sync.sh <site> <command> [args]
-#     <site>    = frontend | admin
+#     <site>    = frontend | admin | blog
 #     <command> = shell | ls [path] | pull | push [--dry-run]
 #
 # Examples:
 #   ./ftp-sync.sh frontend ls
 #   ./ftp-sync.sh admin push --dry-run
-#   ./ftp-sync.sh admin push
+#   ./ftp-sync.sh blog push
 #
 # Credentials are read from gitignored files next to this script:
 #   .ftp-pass-frontend   -> password for the frontend server
 #   .ftp-pass-admin      -> password for the admin server
+#   .ftp-pass-blog       -> password for the blog server
 # (You are prompted if the matching file is missing.)
 
 set -euo pipefail
@@ -40,8 +41,14 @@ case "$site" in
     LOCAL_DIR="mm-admin"
     PASS_FILE="${SCRIPT_DIR}/.ftp-pass-admin"
     ;;
+  blog)
+    HOST="blog.majesticmarquees.clickdigim.com"
+    USER="admin@blog.majesticmarquees.clickdigim.com"
+    LOCAL_DIR="mm-blog"
+    PASS_FILE="${SCRIPT_DIR}/.ftp-pass-blog"
+    ;;
   *)
-    echo "Usage: ./ftp-sync.sh <frontend|admin> <shell|ls|pull|push> [args]" >&2
+    echo "Usage: ./ftp-sync.sh <frontend|admin|blog> <shell|ls|pull|push> [args]" >&2
     exit 1
     ;;
 esac

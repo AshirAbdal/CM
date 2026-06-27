@@ -6,3 +6,17 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ index.php [L]
 </IfModule>
+
+# Site images are admin-managed (replaced in place via /api/site-images) but the
+# page templates reference them by a fixed path with no version string. The
+# server default of Cache-Control: max-age=604800 (7 days) therefore made a
+# replaced image keep showing the OLD copy for up to a week. Force these images
+# to revalidate on every use: with the Last-Modified header (sent by default) an
+# unchanged file returns a cheap 304, while a replaced file is fetched fresh, so
+# admin image updates appear immediately. Scoped to raster images only - CSS,
+# JS and fonts keep their long-lived cache.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(jpe?g|png|webp|gif|avif)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

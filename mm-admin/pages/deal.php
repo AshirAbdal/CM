@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
+if (!defined('API_KEY'))  define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
@@ -98,16 +98,50 @@ $thread = is_array($deal['thread'] ?? null) ? $deal['thread'] : [];
 $offers = is_array($deal['offers'] ?? null) ? $deal['offers'] : [];
 $survey = $deal['survey'] ?? null;
 
+// Canonical conversation subject = the first human message's subject (system
+// offer / offer_response entries carry generated subjects and are skipped),
+// stripped of any Re:/Fwd: prefix. Keeps the whole thread on one subject so
+// emails stay in a single thread at the recipient.
+$convoSubject = '';
+foreach ($thread as $tm) {
+    if (!is_array($tm)) { continue; }
+    $tt = $tm['type'] ?? '';
+    if ($tt === 'offer' || $tt === 'offer_response') { continue; }
+    $ts = trim((string) ($tm['subject'] ?? ''));
+    if ($ts === '') { continue; }
+    $ts = preg_replace('/\s*\[#\d+\]\s*/', ' ', $ts);
+    while (preg_match('/^\s*(re|fwd|fw)\s*:\s*/i', (string) $ts)) {
+        $ts = preg_replace('/^\s*(re|fwd|fw)\s*:\s*/i', '', (string) $ts, 1);
+    }
+    $convoSubject = trim((string) $ts);
+    break;
+}
+
 $layout    = 'app';
 $activeNav = 'lead-management';
 
 // Build prefill query for "New offer"
-$offerQ = http_build_query([
+// The address comes from Apollo.io enrichment when present (formatted address,
+// otherwise city/state/country), so the offer's "Billed to" can be prefilled.
+$leadAddress = '';
+if (is_array($apollo)) {
+    $leadAddress = trim((string) ($apollo['formatted_address']
+        ?? implode(', ', array_filter([
+            $apollo['city']    ?? null,
+            $apollo['state']   ?? null,
+            $apollo['country'] ?? null,
+        ]))));
+}
+$offerParams = [
     'submission_id' => $wantSid,
     'CR_id'         => $CR_id,
     'name'          => $leadName,
     'email'         => $leadEmail,
-]);
+];
+if ($leadAddress !== '') {
+    $offerParams['address'] = $leadAddress;
+}
+$offerQ = http_build_query($offerParams);
 ?>
 <script type="application/json" id="page-meta">
 {
@@ -314,7 +348,7 @@ const _submissionId = <?= $wantSid ?>;
                 <!-- background track (inset to align with node centres) -->
                 <div class="absolute top-[19px] left-[18px] right-[18px] h-1.5 bg-gray-200 rounded-full"></div>
                 <!-- filled progress -->
-                <div class="absolute top-[19px] left-[18px] h-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-500"
+                <div class="absolute top-[19px] left-[18px] h-1.5 rounded-full bg-gradient-to-r from-tan-400 to-tan-500 transition-all duration-500"
                      style="width: calc((100% - 36px) * <?= max(0, $curIdx) ?> / <?= $maxIdx ?>);"></div>
 
                 <!-- nodes -->
@@ -322,7 +356,7 @@ const _submissionId = <?= $wantSid ?>;
                     <?php foreach ($STAGES as $i => $st):
                         $auto = in_array($st, $first3, true);
                         if ($i < $curIdx) {
-                            $circle = 'bg-green-500 border-green-500 text-white';
+                            $circle = 'bg-tan-500 border-tan-500 text-white';
                             $inner  = '&#10003;'; // check
                         } elseif ($i === $curIdx) {
                             $circle = 'bg-blue-600 border-blue-600 text-white ring-4 ring-blue-100';
@@ -335,7 +369,7 @@ const _submissionId = <?= $wantSid ?>;
                     <button type="button" data-stageseg="<?= $st ?>" onclick="selectStage('<?= $st ?>')"
                             title="<?= htmlspecialchars($STAGE_LABEL[$st]) ?><?= $st === $stage ? ' (current stage)' : '' ?>"
                             class="stage-node group flex flex-col items-center gap-1.5 min-w-0 flex-1 px-0.5">
-                        <span class="stage-node-circle relative z-10 grid place-items-center w-9 h-9 rounded-full border-2 text-xs font-bold transition <?= $circle ?>"><?= $inner ?></span>
+                        <span class="stage-node-circle relative z-[1] grid place-items-center w-9 h-9 rounded-full border-2 text-xs font-bold transition <?= $circle ?>"><?= $inner ?></span>
                         <span class="block w-full text-center text-[10px] leading-tight font-medium <?= $i === $curIdx ? 'text-blue-700' : 'text-gray-500' ?> truncate">
                             <?= htmlspecialchars($STAGE_LABEL[$st]) ?><?= $auto ? ' &#9881;' : '' ?>
                         </span>
@@ -373,18 +407,42 @@ const _submissionId = <?= $wantSid ?>;
                     <?php else: foreach ($thread as $m):
                         $out     = ($m['direction'] ?? 'out') === 'out';
                         $isOffer = ($m['type'] ?? '') === 'offer';
+                        $isResp  = ($m['type'] ?? '') === 'offer_response';
+                        $resp    = strtolower((string) ($m['response'] ?? ''));
+                        [$respLabel, $respBox, $respText] = match ($resp) {
+                            'accepted' => ['Accepted', 'bg-green-50 border border-green-100', 'text-green-700'],
+                            'rejected' => ['Declined', 'bg-red-50 border border-red-100', 'text-red-700'],
+                            'changes'  => ['Changes requested', 'bg-amber-50 border border-amber-100', 'text-amber-700'],
+                            default    => ['Response', 'bg-gray-50 border border-gray-100', 'text-gray-600'],
+                        };
+                        if ($isResp) {
+                            $boxCls = $respBox; $nameCls = $respText; $nameTxt = '&#128233; Lead response';
+                        } elseif ($isOffer) {
+                            $boxCls = 'bg-indigo-50 border border-indigo-100'; $nameCls = 'text-indigo-600'; $nameTxt = '&#128221; Offer &rarr; Lead';
+                        } else {
+                            $boxCls = $out ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100';
+                            $nameCls = $out ? 'text-blue-600' : 'text-gray-500';
+                            $nameTxt = $out ? 'You &rarr; Lead' : 'Lead';
+                        }
                     ?>
                     <div class="flex <?= $out ? 'justify-end' : 'justify-start' ?>">
-                        <div class="max-w-[80%] rounded-xl px-3.5 py-2.5 <?= $isOffer ? 'bg-indigo-50 border border-indigo-100' : ($out ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100') ?>">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[11px] font-semibold <?= $isOffer ? 'text-indigo-600' : ($out ? 'text-blue-600' : 'text-gray-500') ?>"><?= $isOffer ? '&#128221; Offer &rarr; Lead' : ($out ? 'You &rarr; Lead' : 'Lead') ?></span>
+                        <div class="max-w-[80%] rounded-xl px-3.5 py-2.5 <?= $boxCls ?>">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-[11px] font-semibold <?= $nameCls ?>"><?= $nameTxt ?></span>
+                                <?php if ($isResp): ?>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-full border border-current font-medium <?= $respText ?>"><?= $respLabel ?></span>
+                                <?php endif; ?>
                                 <span class="text-[10px] text-gray-400"><?= htmlspecialchars((string)($m['at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
                             <?php if (!empty($m['subject'])): ?>
                             <p class="text-xs font-medium text-gray-700 mb-0.5"><?= htmlspecialchars($m['subject'], ENT_QUOTES, 'UTF-8') ?></p>
                             <?php endif; ?>
+                            <?php if (($m['format'] ?? '') === 'html'): ?>
+                            <div class="deal-html text-sm text-gray-700"><?= /* sanitized server-side on write */ $m['body'] ?? '' ?></div>
+                            <?php else: ?>
                             <p class="text-sm text-gray-700 whitespace-pre-wrap"><?= htmlspecialchars((string)($m['body'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
-                            <?php if ($isOffer && !empty($m['token'])): ?>
+                            <?php endif; ?>
+                            <?php if (($isOffer || $isResp) && !empty($m['token'])): ?>
                             <a href="/estimate/<?= htmlspecialchars($m['token'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" class="inline-block mt-1.5 text-xs font-medium text-indigo-600 hover:underline">View estimate &rarr;</a>
                             <?php endif; ?>
                         </div>
@@ -394,8 +452,14 @@ const _submissionId = <?= $wantSid ?>;
 
                 <!-- Composer -->
                 <div class="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                    <input id="msg-subject" type="text" placeholder="Subject (optional)"
+                    <?php if ($convoSubject !== ''): ?>
+                    <input id="msg-subject" type="text" value="Re: <?= htmlspecialchars($convoSubject, ENT_QUOTES, 'UTF-8') ?>"
+                           title="You can change this subject. Replies stay in one thread either way."
                            class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <?php else: ?>
+                    <input id="msg-subject" type="text" placeholder="Subject (required)" required
+                           class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <?php endif; ?>
                     <textarea id="msg-body" rows="3" placeholder="Write a message…"
                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"></textarea>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -403,8 +467,6 @@ const _submissionId = <?= $wantSid ?>;
                                 class="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">&#9993; Send email to lead</button>
                         <a href="/make-offer?<?= htmlspecialchars($offerQ, ENT_QUOTES, 'UTF-8') ?>"
                            class="text-sm px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">&#128221; Make offer</a>
-                        <button onclick="sendMessage('in')" id="btn-log"
-                                class="text-sm px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Log a reply manually</button>
                     </div>
                 </div>
             </div>
@@ -447,11 +509,16 @@ const _submissionId = <?= $wantSid ?>;
                             <span class="text-sm font-medium text-gray-700"><?= htmlspecialchars($curr, ENT_QUOTES, 'UTF-8') ?> <?= $total ?></span>
                         </div>
                         <div class="flex items-center justify-between gap-3 flex-wrap mt-2">
-                            <?php if (!empty($o['token'])): ?>
-                            <a href="/estimate/<?= htmlspecialchars($o['token'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" class="text-xs font-medium text-indigo-600 hover:underline">View estimate &rarr;</a>
-                            <?php else: ?>
-                            <span></span>
-                            <?php endif; ?>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <?php if (!empty($o['token'])): ?>
+                                <a href="/estimate/<?= htmlspecialchars($o['token'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" class="text-xs font-medium text-indigo-600 hover:underline">View estimate &rarr;</a>
+                                <?php endif; ?>
+                                <?php if (!empty($o['est_id'])): ?>
+                                <a href="/make-offer?<?= htmlspecialchars($offerQ, ENT_QUOTES, 'UTF-8') ?>&amp;est_id=<?= (int) $o['est_id'] ?>"
+                                   class="text-xs font-medium text-emerald-700 hover:underline"
+                                   title="Load this offer into the builder and send a revised version">&#128221; Revise / new version</a>
+                                <?php endif; ?>
+                            </div>
                             <div class="text-right">
                                 <?php if ($xInvNo !== ''): ?>
                                     <div class="flex items-center gap-2 justify-end">
@@ -560,6 +627,48 @@ const _submissionId = <?= $wantSid ?>;
     </div>
 </div>
 
+<style>
+  /* Tailwind preflight strips list/quote styling; restore it for rendered
+     message HTML so sanitized rich-text bodies read correctly. */
+  .deal-html { line-height: 1.55; }
+  .deal-html p { margin: 0 0 .4rem; }
+  .deal-html p:last-child { margin-bottom: 0; }
+  .deal-html ul { list-style: disc; padding-left: 1.25rem; margin: .25rem 0; }
+  .deal-html ol { list-style: decimal; padding-left: 1.25rem; margin: .25rem 0; }
+  .deal-html a { color: #2563eb; text-decoration: underline; }
+  .deal-html blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; margin: .35rem 0; color: #475569; }
+  .deal-html h1, .deal-html h2, .deal-html h3, .deal-html h4 { font-weight: 600; margin: .4rem 0 .2rem; }
+  .deal-html h1 { font-size: 1.5rem; }
+  .deal-html h2 { font-size: 1.25rem; }
+  .deal-html h3 { font-size: 1.1rem; }
+  .deal-html h4 { font-size: 1rem; }
+  /* CKEditor sits inside the composer card. */
+  .ck.ck-editor { width: 100%; }
+  .ck-editor__editable[role="textbox"] { min-height: 160px; max-height: 360px; }
+  .ck.ck-editor__main > .ck-editor__editable { border-radius: 0 0 .5rem .5rem; }
+  .ck.ck-toolbar { border-radius: .5rem .5rem 0 0; }
+  /* Tailwind preflight zeroes list padding, so the bullet/number markers render
+     past the editable's left edge and get clipped (overflow:auto). Restore list,
+     quote and heading styling inside the editor so typed AND pasted rich text
+     shows correctly and every marker is fully visible. */
+  .ck.ck-content ul { list-style: disc outside; padding-left: 1.6rem; margin: .35rem 0; }
+  .ck.ck-content ol { list-style: decimal outside; padding-left: 1.9rem; margin: .35rem 0; }
+  .ck.ck-content ul ul { list-style: circle outside; }
+  .ck.ck-content ol ol { list-style: lower-alpha outside; }
+  .ck.ck-content li { margin: .12rem 0; }
+  .ck.ck-content p { margin: 0 0 .4rem; }
+  .ck.ck-content blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; margin: .4rem 0; color: #475569; font-style: italic; }
+  .ck.ck-content a { color: #2563eb; text-decoration: underline; }
+  .ck.ck-content h1, .ck.ck-content h2, .ck.ck-content h3, .ck.ck-content h4 { font-weight: 600; line-height: 1.25; margin: .5rem 0 .25rem; }
+  .ck.ck-content h1 { font-size: 1.5rem; }
+  .ck.ck-content h2 { font-size: 1.25rem; }
+  .ck.ck-content h3 { font-size: 1.1rem; }
+  .ck.ck-content h4 { font-size: 1rem; }
+  /* Alignment / colour / font-size render from inline styles, so no extra
+     editor rules are needed for them. */
+</style>
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.css">
+<script src="https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.umd.js"></script>
 <script>
 function _headers() {
     return { 'Content-Type':'application/json', 'X-API-Key':_apiKey, 'Origin':_apiOrigin, 'Authorization':'Bearer '+_jwt };
@@ -619,8 +728,64 @@ function startReplyAutoSync() {
     }, 60000);
 }
 
+// Rich-text email composer (CKEditor 5, v43 UMD browser build). Falls back to
+// the plain <textarea> if the CDN script is unavailable. The build exposes a
+// single global `CKEDITOR` from which every open-source plugin is pulled, so we
+// can add Alignment + Font (colour/size) + General HTML Support - the plugins
+// the old classic build lacked - and keep pasted formatting.
+let _mailEditor = null;
+function initMailEditor() {
+    const el = document.getElementById('msg-body');
+    if (!el || typeof CKEDITOR === 'undefined' || !CKEDITOR.ClassicEditor) return;
+    const {
+        ClassicEditor, Essentials, Paragraph, Heading, Bold, Italic, Underline,
+        Strikethrough, Link, AutoLink, List, BlockQuote, Alignment, FontColor,
+        FontSize, FontBackgroundColor, GeneralHtmlSupport, PasteFromOffice,
+        Autoformat, RemoveFormat
+    } = CKEDITOR;
+    ClassicEditor.create(el, {
+        plugins: [
+            Essentials, Paragraph, Heading, Bold, Italic, Underline, Strikethrough,
+            Link, AutoLink, List, BlockQuote, Alignment, FontColor, FontSize,
+            FontBackgroundColor, GeneralHtmlSupport, PasteFromOffice, Autoformat, RemoveFormat
+        ],
+        toolbar: [
+            'heading', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+            'bold', 'italic', 'underline', '|', 'alignment', '|',
+            'link', 'bulletedList', 'numberedList', 'blockQuote', '|',
+            'removeFormat', '|', 'undo', 'redo'
+        ],
+        // Numeric sizes emit inline `font-size` (not CSS classes) so they survive
+        // sanitising and render in any email client.
+        fontSize: { supportAllValues: true, options: [10, 12, 14, 'default', 18, 24, 36] },
+        // Retain pasted inline alignment / colour / sizing that the dedicated
+        // plugins do not model directly. Scoped to the content elements the
+        // backend sanitizer keeps, so structural paste (tables, divs) flattens
+        // in the editor exactly as it will on send - what you see is what is
+        // sent. The sanitizer is the security boundary; it re-validates every
+        // style on save.
+        htmlSupport: {
+            allow: [{
+                name: /^(p|span|a|strong|b|em|i|u|s|ul|ol|li|blockquote|h1|h2|h3|h4)$/,
+                styles: {
+                    'text-align': true, 'color': true, 'background-color': true,
+                    'font-size': true, 'font-weight': true, 'font-style': true,
+                    'text-decoration': true
+                },
+                attributes: false,
+                classes: false
+            }]
+        },
+        placeholder: 'Write a message\u2026'
+    }).then(function (ed) {
+        _mailEditor = ed;
+        window._mailEditor = ed;
+    }).catch(function (err) { console.error('CKEditor init failed', err); });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     selectStage(_currentStage);
+    initMailEditor();
     syncReplies(true);        // initial silent pull
     startReplyAutoSync();     // keep it fresh
 });
@@ -654,7 +819,7 @@ async function resendSurvey() {
     try {
         const res = await fetch(_apiBase + '/wl/admin/customer/survey/send', {
             method: 'POST', headers: _headers(),
-            body: JSON.stringify({ submission_id: _submissionId }),
+            body: JSON.stringify({ submission_id: _submissionId, base_url: window.location.origin }),
         });
         if (res.status === 401) { window.location = '/login'; return; }
         const data = await res.json().catch(() => ({}));
@@ -675,9 +840,16 @@ function markDead() {
 }
 
 async function sendMessage(direction) {
-    const subject = document.getElementById('msg-subject').value.trim();
-    const body    = document.getElementById('msg-body').value.trim();
-    if (!body) { alert('Please write a message first.'); return; }
+    const subjEl   = document.getElementById('msg-subject');
+    const subject  = subjEl.value.trim();
+    const bodyHtml = _mailEditor ? _mailEditor.getData() : document.getElementById('msg-body').value;
+    const bodyText = bodyHtml.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+    if (!bodyText) { alert('Please write a message first.'); return; }
+    if (direction === 'out' && subjEl.required && subject === '') {
+        alert('Please enter a subject. The first email sets the subject for the whole conversation.');
+        subjEl.focus();
+        return;
+    }
 
     const btn = document.getElementById(direction === 'out' ? 'btn-send' : 'btn-log');
     const orig = btn.textContent;
@@ -686,14 +858,21 @@ async function sendMessage(direction) {
     try {
         const res = await fetch(_apiBase + '/wl/admin/lead/message', {
             method: 'POST', headers: _headers(),
-            body: JSON.stringify({ submission_id: _submissionId, direction, subject, body }),
+            body: JSON.stringify({ submission_id: _submissionId, direction, subject, body: bodyHtml }),
         });
         if (res.status === 401) { window.location = '/login'; return; }
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) { alert('Failed: ' + (data.error || 'Unknown error')); return; }
         appendMessage(data.message);
-        document.getElementById('msg-subject').value = '';
-        document.getElementById('msg-body').value = '';
+        if (_mailEditor) { _mailEditor.setData(''); } else { document.getElementById('msg-body').value = ''; }
+        // Keep the subject editable on every message so the admin can rename the
+        // thread at any time (threading is preserved by the In-Reply-To /
+        // References headers, not the subject text). Default the next message to
+        // the conversation subject and drop the first-email "required" rule now
+        // that the thread has a subject.
+        const base = (data.message && data.message.subject) ? String(data.message.subject).trim() : '';
+        if (base) { subjEl.value = 'Re: ' + base; }
+        subjEl.required = false;
     } catch (e) {
         alert('Network error: ' + e.message);
     } finally {
@@ -739,22 +918,37 @@ async function syncReplies(silent) {
 function bubbleHtml(m) {
     const out     = (m.direction || 'out') === 'out';
     const isOffer = (m.type || '') === 'offer';
+    const isResp  = (m.type || '') === 'offer_response';
+    const resp    = (m.response || '').toLowerCase();
+    const respUi  = {
+        accepted: ['Accepted', 'bg-green-50 border border-green-100', 'text-green-700'],
+        rejected: ['Declined', 'bg-red-50 border border-red-100', 'text-red-700'],
+        changes:  ['Changes requested', 'bg-amber-50 border border-amber-100', 'text-amber-700'],
+    }[resp] || ['Response', 'bg-gray-50 border border-gray-100', 'text-gray-600'];
     const wrapCls = 'flex ' + (out ? 'justify-end' : 'justify-start');
-    const boxCls  = isOffer ? 'bg-indigo-50 border border-indigo-100'
-                  : (out ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100');
-    const nameCls = isOffer ? 'text-indigo-600' : (out ? 'text-blue-600' : 'text-gray-500');
-    const name    = isOffer ? '\uD83D\uDCDD Offer \u2192 Lead' : (out ? 'You \u2192 Lead' : 'Lead');
-    const offerLink = (isOffer && m.token)
+    const boxCls  = isResp ? respUi[1]
+                  : (isOffer ? 'bg-indigo-50 border border-indigo-100'
+                  : (out ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100'));
+    const nameCls = isResp ? respUi[2] : (isOffer ? 'text-indigo-600' : (out ? 'text-blue-600' : 'text-gray-500'));
+    const name    = isResp ? '\uD83D\uDCE9 Lead response' : (isOffer ? '\uD83D\uDCDD Offer \u2192 Lead' : (out ? 'You \u2192 Lead' : 'Lead'));
+    const statusPill = isResp
+        ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-current font-medium ' + respUi[2] + '">' + escHtml(respUi[0]) + '</span>'
+        : '';
+    const offerLink = ((isOffer || isResp) && m.token)
         ? '<a href="/estimate/' + escHtml(m.token) + '" target="_blank" class="inline-block mt-1.5 text-xs font-medium text-indigo-600 hover:underline">View estimate \u2192</a>'
         : '';
+    const bodyBlock = (m.format === 'html')
+        ? '<div class="deal-html text-sm text-gray-700">' + (m.body || '') + '</div>'
+        : '<p class="text-sm text-gray-700 whitespace-pre-wrap">' + escHtml(m.body) + '</p>';
     return '<div class="' + wrapCls + '">' +
         '<div class="max-w-[80%] rounded-xl px-3.5 py-2.5 ' + boxCls + '">' +
-            '<div class="flex items-center gap-2 mb-1">' +
+            '<div class="flex items-center gap-2 mb-1 flex-wrap">' +
                 '<span class="text-[11px] font-semibold ' + nameCls + '">' + name + '</span>' +
+                statusPill +
                 '<span class="text-[10px] text-gray-400">' + escHtml(m.at) + '</span>' +
             '</div>' +
             (m.subject ? '<p class="text-xs font-medium text-gray-700 mb-0.5">' + escHtml(m.subject) + '</p>' : '') +
-            '<p class="text-sm text-gray-700 whitespace-pre-wrap">' + escHtml(m.body) + '</p>' +
+            bodyBlock +
             offerLink +
         '</div>' +
     '</div>';

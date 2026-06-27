@@ -1,25 +1,11 @@
 <?php
 if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 ?>
-<script type="application/json" id="page-meta">
-{
-    "title": "Custom & Bespoke Tents - Majestic Marquees & Tents",
-    "name": {
-        "description": "Made-to-measure 3D engineered canopies and bespoke tents designed exactly to your location's measurements.",
-        "robots": "index, follow"
-    },
-    "property": {
-        "og:title": "Custom & Bespoke Tents - Majestic Marquees & Tents",
-        "og:description": "Made-to-measure 3D engineered canopies and bespoke tents designed exactly to your location's measurements.",
-        "og:type": "website"
-    }
-}
-</script>
 
 <!-- Hero -->
 <section class="relative">
     <div class="relative w-full h-[360px] sm:h-[420px] lg:h-[480px] overflow-hidden">
-        <img src="/assets/images/custom-hero-bg.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+        <img src="/assets/images/custom-hero-bg.jpg" alt="<?= e(get_image_alt('images/custom-hero-bg.jpg', 'Hero Background')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
     </div>
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute inset-0 flex items-center">
@@ -51,7 +37,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
         <?php carousel_open(); ?>
         <?php for ($i = 1; $i <= 11; $i++): ?>
             <div class="shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3 px-2">
-                <img src="/assets/images/custom-carousel-<?= $i ?>.jpg" alt="Bespoke <?= $i ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
+                <img src="/assets/images/custom-carousel-<?= $i ?>.jpg" alt="<?= e(get_image_alt('images/custom-carousel-' . $i . '.jpg', 'Bespoke ' . $i)) ?>" class="w-full aspect-[4/3] object-cover" loading="lazy">
             </div>
         <?php endfor; ?>
         <?php carousel_close(); ?>
@@ -85,7 +71,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
         </div>
 
         <div id="contact-form" class="relative overflow-hidden border border-forest-800/15">
-            <img src="/assets/images/custom-quote-bg.jpg" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+            <img src="/assets/images/custom-quote-bg.jpg" alt="<?= e(get_image_alt('images/custom-quote-bg.jpg', '')) ?>" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
             <div class="absolute inset-0 bg-forest-800/55" aria-hidden="true"></div>
 
             <div class="relative p-8 sm:p-12">

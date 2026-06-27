@@ -3,7 +3,7 @@ if (!defined('APP_ENTRY')) { http_response_code(404); exit; }
 
 $_is_local = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 if (!defined('API_BASE')) define('API_BASE', $_is_local ? 'http://localhost:8000'   : 'https://apiv1.clickdigim.com');
-if (!defined('API_KEY'))  define('API_KEY',  'mq-prod-public-key-001');
+if (!defined('API_KEY'))  define('API_KEY',  'mq_live_b00101f324e00a652f368af1c17a88d26460f273f007d462');
 if (!defined('ORIGIN'))   define('ORIGIN',   $_is_local ? 'http://localhost:8002'   : 'https://admin.majesticmarquees.clickdigim.com');
 unset($_is_local);
 
@@ -25,7 +25,7 @@ $activeNav = 'survey-questions';
             <p class="text-sm text-gray-500 mt-1">These questions are emailed to every new lead. Qualification is decided by AI using your context and the submitted answers.</p>
         </div>
         <button type="button" id="add-question-btn"
-                class="text-sm font-medium px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors">
+                class="text-sm font-medium px-4 py-2 rounded-lg bg-tan-500 text-white hover:bg-tan-600 transition-colors">
             + Add question
         </button>
     </div>
@@ -36,9 +36,13 @@ $activeNav = 'survey-questions';
     <div id="context-wrap" class="hidden bg-white rounded-xl border border-gray-200 p-5 space-y-2">
         <label for="survey-context" class="block text-sm font-medium text-gray-700">Qualification Context</label>
         <p class="text-xs text-gray-500">This context is sent to AI on every survey submission to decide if the customer/lead is qualified.</p>
-        <textarea id="survey-context" rows="5"
+        <textarea id="survey-context" rows="5" maxlength="4000"
                   placeholder="Example: Qualified only if budget is above X and decision maker can commit within Y timeline..."
                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-400"></textarea>
+        <div class="flex items-center justify-between gap-3 text-xs">
+            <span class="text-gray-400">Recommended: 150-400 words for the most consistent AI scoring.</span>
+            <span id="context-counter" class="text-gray-400 shrink-0 tabular-nums">0 words &middot; 0/4000 characters</span>
+        </div>
     </div>
 
     <div id="questions" class="hidden space-y-4"></div>
@@ -60,6 +64,13 @@ $activeNav = 'survey-questions';
 
     let questions = [];
     let contextText = '';
+
+    // Soft guardrails for the qualification context. The model window is far
+    // larger (gemini-2.5-flash accepts ~1M input tokens); these are usability
+    // limits, not a model constraint. CONTEXT_MAX_CHARS mirrors the textarea
+    // maxlength and the backend guard.
+    const CONTEXT_MAX_CHARS = 4000;
+    const CONTEXT_REC_WORDS = 400;
 
     function headers() {
         return {
@@ -105,6 +116,7 @@ $activeNav = 'survey-questions';
         document.getElementById('footer').classList.remove('hidden');
         document.getElementById('context-wrap').classList.remove('hidden');
         document.getElementById('survey-context').value = contextText;
+        updateContextCounter();
 
         if (!questions.length) {
             wrap.innerHTML = '<p class="text-sm text-gray-400 italic py-8 text-center">No questions yet. Click “Add question” to start.</p>';
@@ -118,6 +130,20 @@ $activeNav = 'survey-questions';
 
     function syncContext() {
         contextText = document.getElementById('survey-context').value.trim();
+    }
+
+    function updateContextCounter() {
+        const ta = document.getElementById('survey-context');
+        const el = document.getElementById('context-counter');
+        if (!ta || !el) return;
+        const chars = ta.value.length;
+        const trimmed = ta.value.trim();
+        const words = trimmed ? trimmed.split(/\s+/).length : 0;
+        el.innerHTML = words + ' word' + (words === 1 ? '' : 's') + ' &middot; ' + chars + '/' + CONTEXT_MAX_CHARS + ' characters';
+        let colour = 'text-gray-400';
+        if (chars >= CONTEXT_MAX_CHARS)      colour = 'text-red-500';
+        else if (words > CONTEXT_REC_WORDS)  colour = 'text-amber-600';
+        el.className = 'shrink-0 tabular-nums ' + colour;
     }
 
     function card(q, i) {
@@ -218,6 +244,11 @@ $activeNav = 'survey-questions';
             sync();
             render();
         }
+    });
+
+    // Live word/character counter for the qualification context
+    document.addEventListener('input', function (e) {
+        if (e.target.id === 'survey-context') updateContextCounter();
     });
 
     async function save() {

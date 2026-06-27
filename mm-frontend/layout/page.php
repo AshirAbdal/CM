@@ -3,25 +3,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="generator" content="clickdigim v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageMeta['title'] ?? 'Majestic Marquees & Tents') ?></title>
     <link rel="icon" href="data:,">
-    <!-- Staging: force the whole frontend to be non-indexable. -->
-    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="content-language" content="en-US">
+    <meta name="robots" content="<?= e($pageMeta['name']['robots'] ?? 'noindex, nofollow') ?>">
     <?php foreach ($pageMeta['name'] ?? [] as $k => $v): if ($k === 'robots') continue; ?>
     <meta name="<?= e($k) ?>" content="<?= e($v) ?>">
     <?php endforeach; ?>
     <?php foreach ($pageMeta['property'] ?? [] as $k => $v): ?>
     <meta property="<?= e($k) ?>" content="<?= e($v) ?>">
     <?php endforeach; ?>
+    <?php foreach ($pageMeta['link'] ?? [] as $rel => $href): ?>
+    <link rel="<?= e($rel) ?>" href="<?= e($href) ?>">
+    <?php endforeach; ?>
     <?php if (!empty($pageMeta['schema'])): ?>
-    <script type="application/ld+json"><?= json_encode($pageMeta['schema']) ?></script>
+    <script type="application/ld+json"><?= json_encode($pageMeta['schema'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
     <?php endif; ?>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Branded web fonts (Google Fonts) are consent-gated: injected by consent.js
+         only after the visitor accepts "Functional" cookies. System-font fallbacks
+         (Georgia / system-ui, see tailwind.config) are used until then. -->
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -82,6 +84,15 @@
             .link-underline:hover::after { @apply origin-left scale-x-100; }
         }
     </style>
+    <!-- API config: base URL for proxied API calls (key is attached server-side) -->
+    <script>window.MM_API = { base: "/api/proxy" };</script>
+    <!-- Cookie-consent config. Fonts load only after "Functional" consent; set the
+         tracker IDs below to switch Analytics / Marketing on (they fire only after consent). -->
+    <script>
+        window.MM_CONSENT  = { version: "<?= CONSENT_VERSION ?>", fonts: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Open+Sans:wght@300;400;500;600&display=swap" };
+        window.MM_TRACKERS = { ga4: "", metaPixel: "" };
+    </script>
+    <script src="/consent.js" defer></script>
     <script src="/app.js" defer></script>
     <script src="/spa.js" defer></script>
     <!-- Google reCAPTCHA v2. Explicit render so it also works after SPA navigation; see renderRecaptcha() in app.js -->
@@ -119,7 +130,7 @@
                 <a href="/about" class="spa-link nav-link link-underline text-[16px] leading-[1.5] capitalize tracking-wider transition-colors text-forest-800 hover:text-tan-500" data-nav-base="/about">About</a>
                 <a href="/contact-get-a-quote" class="spa-link nav-link link-underline text-[16px] leading-[1.5] capitalize tracking-wider transition-colors text-forest-800 hover:text-tan-500" data-nav-base="/contact-get-a-quote">Contact / Get a Quote</a>
 
-                <a href="https://blog.majesticmarquees.clickdigim.com/" class="link-underline text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 hover:text-tan-500">Blog</a>
+                <a href="<?= e(BLOG_BASE) ?>/" class="link-underline text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 hover:text-tan-500">Blog</a>
                 <a href="/contact-get-a-quote#contact-form" class="spa-link btn-primary">Inquire Today</a>
             </nav>
 
@@ -150,7 +161,7 @@
                 <a href="/faq" class="spa-link text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 py-2">FAQ</a>
                 <a href="/about" class="spa-link text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 py-2">About</a>
                 <a href="/contact-get-a-quote" class="spa-link text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 py-2">Contact / Get a Quote</a>
-                <a href="https://blog.majesticmarquees.clickdigim.com/" class="text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 py-2">Blog</a>
+                <a href="<?= e(BLOG_BASE) ?>/" class="text-[16px] leading-[1.5] capitalize tracking-wider text-forest-800 py-2">Blog</a>
                 <a href="/contact-get-a-quote#contact-form" class="spa-link btn-primary w-fit mt-2">Inquire Today</a>
             </div>
         </div>
@@ -171,13 +182,14 @@
                     <li><a href="/our-tents" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Our Tents</a></li>
                     <li><a href="/gallery" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Gallery</a></li>
                     <li><a href="/contact-get-a-quote" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Contact / Get a Quote</a></li>
+                    <li><button type="button" data-review-open class="link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors appearance-none bg-transparent border-0 p-0 m-0 cursor-pointer text-left">Write a Review</button></li>
                 </ul>
             </div>
             <div>
                 <ul class="space-y-1.5">
                     <li><a href="/about" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">About</a></li>
                     <li><a href="/faq" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">FAQ</a></li>
-                    <li><a href="https://blog.majesticmarquees.clickdigim.com/" class="link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Blog</a></li>
+                    <li><a href="<?= e(BLOG_BASE) ?>/" class="link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Blog</a></li>
                 </ul>
                 <p class="mt-8 uppercase text-[16px] font-light text-[#2c2c2c]">Speak With Us</p>
                 <a href="tel:+6282342464312" class="inline-block link-underline mt-2 text-[16px] font-light text-[#2c2c2c] hover:text-tan-500 transition-colors">+62 823-4246-4312</a>
@@ -187,6 +199,7 @@
                     <li><a href="/terms-conditions" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Terms and Condition</a></li>
                     <li><a href="/privacy-policy-2" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Privacy Policy</a></li>
                     <li><a href="/cookie-policy" class="spa-link link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors">Cookie Policy</a></li>
+                    <li><button type="button" data-consent-open class="link-underline uppercase text-[16px] font-light leading-[1.7] text-[#2c2c2c] hover:text-tan-500 transition-colors text-left">Cookie Settings</button></li>
                 </ul>
             </div>
         </div>
@@ -215,6 +228,9 @@
             &copy; <?= date('Y') ?> Majestic Marquees &amp; Tents. Superior Tents, Exceptional Service.
         </div>
     </footer>
+
+    <?php render_review_modal(); ?>
+    <?php render_cookie_consent(); ?>
 
 </div>
 </body>
